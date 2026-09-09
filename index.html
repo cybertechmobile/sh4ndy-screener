@@ -5,108 +5,394 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Screener Saham Swing Professional</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-900 text-white p-6">
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-bold mb-2 text-green-400">📈 Screener Swing Trader (Pullback Strategy)</h1>
-        <p class="text-gray-400 text-sm mb-6" id="last-updated">Memuat data...</p>
+    <style>
+        /* Animasi Kedip (Blink) 3 Kali untuk Pencarian */
+        @keyframes blink-animation {
+            0% { background-color: rgba(234, 179, 8, 0.4); }
+            50% { background-color: transparent; }
+            100% { background-color: rgba(234, 179, 8, 0.4); }
+        }
+        .animate-blink {
+            animation: blink-animation 0.6s ease-in-out 3;
+        }
 
-        <div class="overflow-x-auto bg-gray-800 rounded-lg p-4 shadow-lg">
-            <table class="w-full text-left border-collapse">
+        /* Animasi Blink Kontinu untuk Sinyal Strong */
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(0.92); }
+        }
+        .animate-signal-blink {
+            animation: pulse-fast 0.8s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 sm:p-6 font-sans">
+    <div class="max-w-7xl mx-auto">
+        
+        <!-- Header Section -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-800">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-green-400 flex items-center gap-2">
+                    📈 Screener Saham Swing
+                </h1>
+                <p class="text-gray-400 text-xs sm:text-sm mt-1" id="last-updated">Status: Memuat data...</p>
+            </div>
+
+            <!-- Search Bar & Reload Button -->
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="relative flex-1 md:w-72">
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        placeholder="Cari Kode Saham (cth: BBCA)..." 
+                        class="w-full bg-gray-800 text-white placeholder-gray-500 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-green-500 transition-colors uppercase"
+                        onkeyup="handleSearch(event)"
+                    />
+                    <button 
+                        onclick="executeSearch()" 
+                        class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-400 p-1"
+                        title="Cari"
+                    >
+                        🔍
+                    </button>
+                </div>
+
+                <button 
+                    onclick="reloadPage()" 
+                    class="flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 p-2.5 rounded-lg transition-all"
+                    title="Reload Halaman"
+                >
+                    <svg id="reload-icon" class="w-5 h-5 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="flex flex-wrap gap-2 mb-6">
+            <button id="tab-swing_setup" onclick="switchTab('swing_setup')" class="tab-btn bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">🎯 Swing Setup</button>
+            <button id="tab-top_gainers" onclick="switchTab('top_gainers')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all">🚀 Top Gainers</button>
+            <button id="tab-top_movers" onclick="switchTab('top_movers')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all">🔥 Top Movers</button>
+            <button id="tab-bluechips" onclick="switchTab('bluechips')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all">💎 Bluechip</button>
+            <button id="tab-all_stocks" onclick="switchTab('all_stocks')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all">🌐 Semua Emiten</button>
+        </div>
+
+        <!-- Notification / Search Alert -->
+        <div id="search-alert" class="hidden mb-4 p-3 bg-yellow-900/40 border border-yellow-600/50 text-yellow-300 text-sm rounded-lg flex items-center justify-between">
+            <span id="search-alert-msg"></span>
+            <button onclick="hideAlert()" class="text-yellow-400 hover:text-white font-bold ml-2">✕</button>
+        </div>
+
+        <!-- Table Data -->
+        <div class="overflow-x-auto bg-gray-800 rounded-xl border border-gray-700 shadow-xl">
+            <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="border-b border-gray-700 text-gray-400 text-sm">
-                        <th class="p-3">Ticker</th>
-                        <th class="p-3">Harga Closing</th>
-                        <th class="p-3">EMA 20</th>
-                        <th class="p-3">EMA 50</th>
-                        <th class="p-3">RSI (14)</th>
-                        <th class="p-3 text-red-400">Stop Loss (1.5x ATR)</th>
-                        <th class="p-3 text-green-400">Take Profit (3x ATR)</th>
+                    <tr class="bg-gray-850 border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wider">
+                        <th class="p-4">Ticker</th>
+                        <th class="p-4">Closing</th>
+                        <th class="p-4">Change (%)</th>
+                        <th class="p-4">EMA 20</th>
+                        <th class="p-4">EMA 50</th>
+                        <th class="p-4">RSI (14)</th>
+                        <th class="p-4 text-center">Signal</th>
+                        <th class="p-4 text-red-400">Stop Loss (1.5x)</th>
+                        <th class="p-4 text-green-400">Take Profit (3x)</th>
                     </tr>
                 </thead>
-                <tbody id="screener-data">
-                    <!-- Data dari JSON akan dirender di sini -->
+                <tbody id="screener-data" class="divide-y divide-gray-700">
+                    <!-- Data dari JSON akan di-render di sini -->
                 </tbody>
             </table>
         </div>
     </div>
-<!-- Contoh Navigasi Tab di index.html -->
-<div class="flex gap-2 mb-6">
-    <button onclick="switchTab('swing_setup')" class="bg-green-600 px-4 py-2 rounded font-semibold">🎯 Swing Setup</button>
-    <button onclick="switchTab('top_gainers')" class="bg-gray-800 px-4 py-2 rounded hover:bg-gray-700">🚀 Top Gainers</button>
-    <button onclick="switchTab('top_movers')" class="bg-gray-800 px-4 py-2 rounded hover:bg-gray-700">🔥 Top Movers (Vol)</button>
-    <button onclick="switchTab('bluechips')" class="bg-gray-800 px-4 py-2 rounded hover:bg-gray-700">💎 Bluechip</button>
-</div>
 
-<script>
-    let globalData = {};
-
-    async function loadData() {
-        const response = await fetch('data.json?t=' + new Date().getTime());
-        globalData = await response.json();
-        renderTable(globalData.swing_setup); // Default tab
-    }
-
-    function switchTab(categoryKey) {
-        renderTable(globalData[categoryKey] || []);
-    }
-
-    function renderTable(items) {
-        const tbody = document.getElementById('screener-data');
-        tbody.innerHTML = '';
-        items.forEach(item => {
-            const row = `
-                <tr class="border-b border-gray-700">
-                    <td class="p-3 font-bold text-yellow-400">${item.ticker} <span class="text-xs text-gray-400">(${item.category})</span></td>
-                    <td class="p-3">Rp ${item.close.toLocaleString()}</td>
-                    <td class="p-3 ${item.change_pct >= 0 ? 'text-green-400' : 'text-red-400'}">${item.change_pct}%</td>
-                    <td class="p-3">Rp ${item.ema20}</td>
-                    <td class="p-3 text-red-400">Rp ${item.stop_loss}</td>
-                    <td class="p-3 text-green-400">Rp ${item.take_profit}</td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
-        });
-    }
-
-    loadData();
-</script>
     <script>
-        async function fetchScreenerData() {
+        let globalData = {};
+        let currentTab = 'swing_setup';
+
+        async function loadData() {
             try {
                 const response = await fetch('data.json?t=' + new Date().getTime());
-                const json = await response.json();
+                if (!response.ok) throw new Error("Gagal memuat data.json");
                 
-                document.getElementById('last-updated').innerText = 'Terakhir Diperbarui: ' + json.last_updated;
+                globalData = await response.json();
                 
-                const tbody = document.getElementById('screener-data');
-                tbody.innerHTML = '';
-
-                if (json.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-gray-500">Tidak ada saham yang memenuhi kriteria hari ini.</td></tr>';
-                    return;
-                }
-
-                json.data.forEach(item => {
-                    const row = `
-                        <tr class="border-b border-gray-700 hover:bg-gray-750">
-                            <td class="p-3 font-bold text-yellow-400">${item.ticker}</td>
-                            <td class="p-3">Rp ${item.close.toLocaleString()}</td>
-                            <td class="p-3">Rp ${item.ema20.toLocaleString()}</td>
-                            <td class="p-3">Rp ${item.ema50.toLocaleString()}</td>
-                            <td class="p-3">${item.rsi}</td>
-                            <td class="p-3 text-red-400 font-semibold">Rp ${item.stop_loss.toLocaleString()}</td>
-                            <td class="p-3 text-green-400 font-semibold">Rp ${item.take_profit.toLocaleString()}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
+                document.getElementById('last-updated').innerText = 'Terakhir Diperbarui: ' + (globalData.last_updated || 'N/A');
+                renderTable(globalData[currentTab] || []);
             } catch (error) {
-                console.error('Gagal mengambil data JSON:', error);
+                console.error(error);
+                document.getElementById('last-updated').innerText = 'Error: Gagal memuat data dari data.json';
+                document.getElementById('screener-data').innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center p-6 text-red-400">
+                            Gagal mengambil data. Pastikan <code>data.json</code> tersedia.
+                        </td>
+                    </tr>`;
             }
         }
 
-        fetchScreenerData();
+        function switchTab(tabKey) {
+            currentTab = tabKey;
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-green-600', 'text-white');
+                btn.classList.add('bg-gray-800', 'text-gray-300');
+            });
+            const activeBtn = document.getElementById('tab-' + tabKey);
+            if(activeBtn) {
+                activeBtn.classList.remove('bg-gray-800', 'text-gray-300');
+                activeBtn.classList.add('bg-green-600', 'text-white');
+            }
+
+            renderTable(globalData[tabKey] || []);
+        }
+
+        // Helper untuk Menghitung Sinyal & Indikator
+        function evaluateSignals(item) {
+            let score = 0; // Rentang -5 (Strong Bearish) sampai +5 (Strong Bullish)
+
+            // Evaluasi EMA 20
+            let ema20Status = 'neutral';
+            if (item.close > item.ema20) {
+                ema20Status = (item.close >= item.ema20 * 1.03) ? 'strong_buy' : 'buy';
+                score += (ema20Status === 'strong_buy') ? 2 : 1;
+            } else if (item.close < item.ema20) {
+                ema20Status = (item.close <= item.ema20 * 0.97) ? 'strong_sell' : 'sell';
+                score -= (ema20Status === 'strong_sell') ? 2 : 1;
+            }
+
+            // Evaluasi EMA 50
+            let ema50Status = 'neutral';
+            if (item.ema20 > item.ema50) {
+                ema50Status = (item.close > item.ema50) ? 'strong_buy' : 'buy';
+                score += (ema50Status === 'strong_buy') ? 2 : 1;
+            } else if (item.ema20 < item.ema50) {
+                ema50Status = (item.close < item.ema50) ? 'strong_sell' : 'sell';
+                score -= (ema50Status === 'strong_sell') ? 2 : 1;
+            }
+
+            // Evaluasi RSI
+            let rsiStatus = 'neutral';
+            if (item.rsi >= 50 && item.rsi <= 65) {
+                rsiStatus = 'buy';
+                score += 1;
+            } else if (item.rsi > 65) {
+                rsiStatus = 'strong_buy';
+                score += 2;
+            } else if (item.rsi <= 40 && item.rsi >= 30) {
+                rsiStatus = 'sell';
+                score -= 1;
+            } else if (item.rsi < 30) {
+                rsiStatus = 'strong_sell';
+                score -= 2;
+            }
+
+            // Tentukan Kategori Sinyal Utama
+            let mainSignal = 'NEUTRAL';
+            if (score >= 4) mainSignal = 'STRONG_BULLISH';
+            else if (score >= 1) mainSignal = 'BULLISH';
+            else if (score <= -4) mainSignal = 'STRONG_BEARISH';
+            else if (score <= -1) mainSignal = 'BEARISH';
+
+            // Hitung Jumlah Kotak Aktif (1 - 10)
+            let activeBoxes = Math.min(10, Math.max(1, Math.round(((score + 5) / 10) * 10)));
+
+            return {
+                ema20Status,
+                ema50Status,
+                rsiStatus,
+                mainSignal,
+                activeBoxes
+            };
+        }
+
+        // Helper Render Bulatan Kecil Indikator
+        function renderDot(status) {
+            let colorClass = 'bg-gray-500';
+            let blinkClass = '';
+
+            if (status === 'buy') colorClass = 'bg-green-500';
+            else if (status === 'strong_buy') {
+                colorClass = 'bg-green-400';
+                blinkClass = 'animate-signal-blink';
+            } else if (status === 'sell') colorClass = 'bg-red-500';
+            else if (status === 'strong_sell') {
+                colorClass = 'bg-red-500';
+                blinkClass = 'animate-signal-blink';
+            }
+
+            return `<span class="inline-block w-2.5 h-2.5 rounded-full ${colorClass} ${blinkClass} ml-1.5" title="Status: ${status}"></span>`;
+        }
+
+        // Helper Render 10 Kotak Power & Icon Sinyal
+        function renderPowerBoxes(mainSignal, activeBoxes) {
+            let boxColor = 'bg-gray-600';
+            let isBlink = false;
+            let iconHtml = '⏳'; // Default Netral
+
+            if (mainSignal === 'STRONG_BULLISH') {
+                boxColor = 'bg-green-400';
+                isBlink = true;
+                iconHtml = '<span class="inline-block animate-signal-blink">🚀</span>';
+            } else if (mainSignal === 'BULLISH') {
+                boxColor = 'bg-green-500';
+                iconHtml = '🚀';
+            } else if (mainSignal === 'STRONG_BEARISH') {
+                boxColor = 'bg-red-500';
+                isBlink = true;
+                iconHtml = '<span class="inline-block w-3 h-3 bg-red-500 rounded-full animate-signal-blink"></span>';
+            } else if (mainSignal === 'BEARISH') {
+                boxColor = 'bg-red-500';
+                iconHtml = '<span class="inline-block w-3 h-3 bg-red-500 rounded-full"></span>';
+            }
+
+            let boxesHtml = '<div class="flex items-center gap-0.5">';
+            for (let i = 1; i <= 10; i++) {
+                if (i <= activeBoxes) {
+                    boxesHtml += `<span class="w-1.5 h-4 rounded-sm ${boxColor} ${isBlink ? 'animate-signal-blink' : ''}"></span>`;
+                } else {
+                    boxesHtml += `<span class="w-1.5 h-4 rounded-sm bg-gray-700"></span>`;
+                }
+            }
+            boxesHtml += '</div>';
+
+            return `
+                <div class="flex items-center justify-center gap-2">
+                    ${boxesHtml}
+                    <span class="text-base flex items-center justify-center w-5 h-5">${iconHtml}</span>
+                </div>
+            `;
+        }
+
+        function renderTable(items) {
+            const tbody = document.getElementById('screener-data');
+            tbody.innerHTML = '';
+
+            if (!items || items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center p-6 text-gray-500">
+                            Tidak ada data saham untuk kategori ini.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            items.forEach(item => {
+                const isPositive = item.change_pct >= 0;
+                const changeClass = isPositive ? 'text-green-400' : 'text-red-400';
+                const changeSign = isPositive ? '+' : '';
+
+                const sig = evaluateSignals(item);
+
+                const row = document.createElement('tr');
+                row.id = 'row-' + item.ticker;
+                row.className = 'hover:bg-gray-750 transition-colors border-b border-gray-700/50';
+
+                row.innerHTML = `
+                    <td class="p-4 font-bold text-yellow-400 flex items-center gap-2">
+                        <span>${item.ticker}</span>
+                        <span class="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded">${item.category || 'IDX'}</span>
+                    </td>
+                    <td class="p-4 font-medium">Rp ${item.close ? item.close.toLocaleString('id-ID') : '-'}</td>
+                    <td class="p-4 font-semibold ${changeClass}">${changeSign}${item.change_pct}%</td>
+                    
+                    <!-- EMA 20 + Dot -->
+                    <td class="p-4 text-gray-300 whitespace-nowrap">
+                        Rp ${item.ema20 ? item.ema20.toLocaleString('id-ID') : '-'} ${renderDot(sig.ema20Status)}
+                    </td>
+                    
+                    <!-- EMA 50 + Dot -->
+                    <td class="p-4 text-gray-300 whitespace-nowrap">
+                        Rp ${item.ema50 ? item.ema50.toLocaleString('id-ID') : '-'} ${renderDot(sig.ema50Status)}
+                    </td>
+                    
+                    <!-- RSI + Dot -->
+                    <td class="p-4 text-gray-300 whitespace-nowrap">
+                        ${item.rsi} ${renderDot(sig.rsiStatus)}
+                    </td>
+                    
+                    <!-- Power Boxes + Icon Signal -->
+                    <td class="p-4 text-center whitespace-nowrap">
+                        ${renderPowerBoxes(sig.mainSignal, sig.activeBoxes)}
+                    </td>
+                    
+                    <td class="p-4 text-red-400 font-medium">Rp ${item.stop_loss ? item.stop_loss.toLocaleString('id-ID') : '-'}</td>
+                    <td class="p-4 text-green-400 font-medium">Rp ${item.take_profit ? item.take_profit.toLocaleString('id-ID') : '-'}</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                executeSearch();
+            }
+        }
+
+        function executeSearch() {
+            const input = document.getElementById('search-input').value.trim().toUpperCase();
+            if (!input) return;
+
+            let targetCategory = null;
+            let targetStock = null;
+
+            const categories = ['swing_setup', 'top_gainers', 'top_movers', 'bluechips', 'all_stocks'];
+            
+            for (const cat of categories) {
+                if (globalData[cat]) {
+                    const found = globalData[cat].find(s => s.ticker.toUpperCase() === input);
+                    if (found) {
+                        targetCategory = cat;
+                        targetStock = found;
+                        break;
+                    }
+                }
+            }
+
+            if (targetStock && targetCategory) {
+                hideAlert();
+                
+                if (currentTab !== targetCategory) {
+                    switchTab(targetCategory);
+                }
+
+                setTimeout(() => {
+                    const row = document.getElementById('row-' + targetStock.ticker);
+                    if (row) {
+                        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        row.classList.remove('animate-blink');
+                        void row.offsetWidth;
+                        row.classList.add('animate-blink');
+                    }
+                }, 100);
+
+            } else {
+                showAlert(`Emiten <strong>${input}</strong> tidak ditemukan pada data terbarui.`);
+            }
+        }
+
+        function showAlert(msg) {
+            const alertBox = document.getElementById('search-alert');
+            document.getElementById('search-alert-msg').innerHTML = msg;
+            alertBox.classList.remove('hidden');
+        }
+
+        function hideAlert() {
+            document.getElementById('search-alert').classList.add('hidden');
+        }
+
+        function reloadPage() {
+            const icon = document.getElementById('reload-icon');
+            icon.classList.add('rotate-180');
+            setTimeout(() => {
+                location.reload();
+            }, 300);
+        }
+
+        loadData();
     </script>
 </body>
 </html>
