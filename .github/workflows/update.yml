@@ -9,6 +9,11 @@ on:
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
+    
+    # PERBAIKAN 1: Berikan izin write ke GitHub Token
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -25,10 +30,17 @@ jobs:
       - name: Run Screener
         run: python screener.py
 
-      - name: Commit and Push JSON Data
+      # PERBAIKAN 2: Handling penanganan git commit & push yang aman
+      - name: Commit and Push Data
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data.json
-          git commit -m "Auto update screener results [skip ci]" || exit 0
-          git push
+          
+          # Cek apakah ada perubahan pada data.json sebelum commit
+          if git diff --staged --quiet; then
+            echo "Tidak ada perubahan data hari ini."
+          else
+            git commit -m "Auto update screener results [skip ci]"
+            git push
+          fi
