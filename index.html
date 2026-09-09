@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screener Saham Swing Professional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2 text-green-400">📈 Screener Swing Trader (Pullback Strategy)</h1>
+        <p class="text-gray-400 text-sm mb-6" id="last-updated">Memuat data...</p>
+
+        <div class="overflow-x-auto bg-gray-800 rounded-lg p-4 shadow-lg">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-gray-700 text-gray-400 text-sm">
+                        <th class="p-3">Ticker</th>
+                        <th class="p-3">Harga Closing</th>
+                        <th class="p-3">EMA 20</th>
+                        <th class="p-3">EMA 50</th>
+                        <th class="p-3">RSI (14)</th>
+                        <th class="p-3 text-red-400">Stop Loss (1.5x ATR)</th>
+                        <th class="p-3 text-green-400">Take Profit (3x ATR)</th>
+                    </tr>
+                </thead>
+                <tbody id="screener-data">
+                    <!-- Data dari JSON akan dirender di sini -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function fetchScreenerData() {
+            try {
+                const response = await fetch('data.json?t=' + new Date().getTime());
+                const json = await response.json();
+                
+                document.getElementById('last-updated').innerText = 'Terakhir Diperbarui: ' + json.last_updated;
+                
+                const tbody = document.getElementById('screener-data');
+                tbody.innerHTML = '';
+
+                if (json.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-gray-500">Tidak ada saham yang memenuhi kriteria hari ini.</td></tr>';
+                    return;
+                }
+
+                json.data.forEach(item => {
+                    const row = `
+                        <tr class="border-b border-gray-700 hover:bg-gray-750">
+                            <td class="p-3 font-bold text-yellow-400">${item.ticker}</td>
+                            <td class="p-3">Rp ${item.close.toLocaleString()}</td>
+                            <td class="p-3">Rp ${item.ema20.toLocaleString()}</td>
+                            <td class="p-3">Rp ${item.ema50.toLocaleString()}</td>
+                            <td class="p-3">${item.rsi}</td>
+                            <td class="p-3 text-red-400 font-semibold">Rp ${item.stop_loss.toLocaleString()}</td>
+                            <td class="p-3 text-green-400 font-semibold">Rp ${item.take_profit.toLocaleString()}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error('Gagal mengambil data JSON:', error);
+            }
+        }
+
+        fetchScreenerData();
+    </script>
+</body>
+</html>

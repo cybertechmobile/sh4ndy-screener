@@ -1,0 +1,26 @@
+{
+  "last_updated": "2026-09-09 17:00:00 WIB",
+  "total_matches": 2,
+  "data": [
+    {
+      "ticker": "BBCA",
+      "close": 10200,
+      "ema20": 10150,
+      "ema50": 9800,
+      "rsi": 54.5,
+      "stop_loss": 9930.0,
+      "take_profit": 10740.0,
+      "risk_reward": "1:2"
+    },
+    {
+      "ticker": "BBRI",
+      "close": 5100,
+      "ema20": 5050,
+      "ema50": 4800,
+      "rsi": 58.2,
+      "stop_loss": 4965.0,
+      "take_profit": 5370.0,
+      "risk_reward": "1:2"
+    }
+  ]
+}
