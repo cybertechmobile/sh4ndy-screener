@@ -30,7 +30,47 @@
             </table>
         </div>
     </div>
+<!-- Contoh Navigasi Tab di index.html -->
+<div class="flex gap-2 mb-6">
+    <button onclick="switchTab('swing_setup')" class="bg-green-600 px-4 py-2 rounded font-semibold">🎯 Swing Setup</button>
+    <button onclick="switchTab('top_gainers')" class="bg-gray-800 px-4 py-2 rounded hover:bg-gray-700">🚀 Top Gainers</button>
+    <button onclick="switchTab('top_movers')" class="bg-gray-800 px-4 py-2 rounded hover:bg-gray-700">🔥 Top Movers (Vol)</button>
+    <button onclick="switchTab('bluechips')" class="bg-gray-800 px-4 py-2 rounded hover:bg-gray-700">💎 Bluechip</button>
+</div>
 
+<script>
+    let globalData = {};
+
+    async function loadData() {
+        const response = await fetch('data.json?t=' + new Date().getTime());
+        globalData = await response.json();
+        renderTable(globalData.swing_setup); // Default tab
+    }
+
+    function switchTab(categoryKey) {
+        renderTable(globalData[categoryKey] || []);
+    }
+
+    function renderTable(items) {
+        const tbody = document.getElementById('screener-data');
+        tbody.innerHTML = '';
+        items.forEach(item => {
+            const row = `
+                <tr class="border-b border-gray-700">
+                    <td class="p-3 font-bold text-yellow-400">${item.ticker} <span class="text-xs text-gray-400">(${item.category})</span></td>
+                    <td class="p-3">Rp ${item.close.toLocaleString()}</td>
+                    <td class="p-3 ${item.change_pct >= 0 ? 'text-green-400' : 'text-red-400'}">${item.change_pct}%</td>
+                    <td class="p-3">Rp ${item.ema20}</td>
+                    <td class="p-3 text-red-400">Rp ${item.stop_loss}</td>
+                    <td class="p-3 text-green-400">Rp ${item.take_profit}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    loadData();
+</script>
     <script>
         async function fetchScreenerData() {
             try {
