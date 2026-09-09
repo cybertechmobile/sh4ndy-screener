@@ -2,7 +2,7 @@ import json
 import random
 from datetime import datetime
 
-# Daftar emiten sampel untuk pengujian
+# Daftar emiten sampel
 TICKERS = [
     {"ticker": "BBCA", "category": "Bluechip"},
     {"ticker": "BBRI", "category": "Bluechip"},
@@ -19,7 +19,6 @@ TICKERS = [
 def calculate_swing_strategy(close, ema20, ema50, rsi):
     score = 0
     
-    # Evaluasi EMA 20
     if close > ema20:
         ema20_status = "strong_buy" if close >= ema20 * 1.03 else "buy"
         score += 2 if ema20_status == "strong_buy" else 1
@@ -29,7 +28,6 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
     else:
         ema20_status = "neutral"
 
-    # Evaluasi EMA 50
     if ema20 > ema50:
         ema50_status = "strong_buy" if close > ema50 else "buy"
         score += 2 if ema50_status == "strong_buy" else 1
@@ -39,7 +37,6 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
     else:
         ema50_status = "neutral"
 
-    # Evaluasi RSI
     if rsi >= 65:
         rsi_status = "strong_buy"
         score += 2
@@ -55,7 +52,6 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
     else:
         rsi_status = "neutral"
 
-    # Penentuan Sinyal Utama
     if score >= 4:
         signal = "STRONG_BULLISH"
     elif score >= 1:
@@ -67,7 +63,6 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
     else:
         signal = "NEUTRAL"
 
-    # Konversi Skor (-5 s.d +5) ke Skala Kotak Power Meter (1 s.d 10)
     power_score = min(10, max(1, round(((score + 5) / 10) * 10)))
 
     return {
@@ -88,12 +83,7 @@ def generate_screener_data():
         ema50 = int(close * random.uniform(0.90, 1.10))
         rsi = round(random.uniform(25.0, 75.0), 1)
 
-        # Hitung strategi swing
         swing_res = calculate_swing_strategy(close, ema20, ema50, rsi)
-
-        # Risk Management (SL & TP)
-        stop_loss = round(close * 0.95, 1)
-        take_profit = round(close * 1.10, 1)
 
         item = {
             "ticker": stock["ticker"],
@@ -108,12 +98,12 @@ def generate_screener_data():
             "rsi_status": swing_res["rsi_status"],
             "signal": swing_res["signal"],
             "power_score": swing_res["power_score"],
-            "stop_loss": stop_loss,
-            "take_profit": take_profit
+            "stop_loss": round(close * 0.95, 1),
+            "take_profit": round(close * 1.10, 1)
         }
         all_stocks.append(item)
 
-    # Filter Kategori Tab
+    # Pastikan variabel penampung terisi penuh
     swing_setup = [s for s in all_stocks if s["signal"] in ["BULLISH", "STRONG_BULLISH"]]
     top_gainers = sorted(all_stocks, key=lambda x: x["change_pct"], reverse=True)[:5]
     top_movers = sorted(all_stocks, key=lambda x: abs(x["change_pct"]), reverse=True)[:5]
@@ -132,7 +122,7 @@ def generate_screener_data():
     with open("data.json", "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)
 
-    print("Data screener berhasil diperbarui di data.json")
+    print("Data berhasil diperbarui di data.json")
 
 if __name__ == "__main__":
     generate_screener_data()
