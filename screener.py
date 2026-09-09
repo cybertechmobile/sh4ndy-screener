@@ -1,165 +1,138 @@
 import json
+import random
 from datetime import datetime
-import pandas as pd
-import yfinance as yf
 
-# Daftar Saham Bluechip / LQ45 / Kompas100 Pilihan
-BLUECHIP_TICKERS = [
-    "BBCA.JK",
-    "BBRI.JK",
-    "BMRI.JK",
-    "BBNI.JK",
-    "TLKM.JK",
-    "ASII.JK",
-    "ICBP.JK",
-    "UNVR.JK",
-    "AMRT.JK",
-    "KLBF.JK",
-    "CPIN.JK",
-    "GOTO.JK",
+# Daftar emiten sampel untuk pengujian
+TICKERS = [
+    {"ticker": "BBCA", "category": "Bluechip"},
+    {"ticker": "BBRI", "category": "Bluechip"},
+    {"ticker": "BMRI", "category": "Bluechip"},
+    {"ticker": "TLKM", "category": "Bluechip"},
+    {"ticker": "ASII", "category": "Bluechip"},
+    {"ticker": "BRIS", "category": "IDX Liquid"},
+    {"ticker": "MEDC", "category": "IDX Liquid"},
+    {"ticker": "ANTM", "category": "IDX Liquid"},
+    {"ticker": "PGAS", "category": "IDX Liquid"},
+    {"ticker": "ADRO", "category": "IDX Liquid"}
 ]
 
-# Daftar Saham Likuid / Mid-Cap / Growth (IDX Expansion)
-IDX_EXPANDED_TICKERS = [
-    "BRIS.JK",
-    "PGAS.JK",
-    "MEDC.JK",
-    "ANTM.JK",
-    "INCO.JK",
-    "TPIA.JK",
-    "AMMN.JK",
-    "BREN.JK",
-    "CUAN.JK",
-    "ADRO.JK",
-    "PTBA.JK",
-    "AKRA.JK",
-    "AUTO.JK",
-    "MBMA.JK",
-    "ACES.JK",
-]
+def calculate_swing_strategy(close, ema20, ema50, rsi):
+    score = 0
+    
+    # Evaluasi EMA 20
+    if close > ema20:
+        ema20_status = "strong_buy" if close >= ema20 * 1.03 else "buy"
+        score += 2 if ema20_status == "strong_buy" else 1
+    elif close < ema20:
+        ema20_status = "strong_sell" if close <= ema20 * 0.97 else "sell"
+        score -= 2 if ema20_status == "strong_sell" else 1
+    else:
+        ema20_status = "neutral"
 
-# Gabungkan seluruh daftar ticker tanpa duplikasi
-ALL_TICKERS = list(set(BLUECHIP_TICKERS + IDX_EXPANDED_TICKERS))
+    # Evaluasi EMA 50
+    if ema20 > ema50:
+        ema50_status = "strong_buy" if close > ema50 else "buy"
+        score += 2 if ema50_status == "strong_buy" else 1
+    elif ema20 < ema50:
+        ema50_status = "strong_sell" if close < ema50 else "sell"
+        score -= 2 if ema50_status == "strong_sell" else 1
+    else:
+        ema50_status = "neutral"
 
+    # Evaluasi RSI
+    if rsi >= 65:
+        rsi_status = "strong_buy"
+        score += 2
+    elif 50 <= rsi < 65:
+        rsi_status = "buy"
+        score += 1
+    elif 30 <= rsi <= 40:
+        rsi_status = "sell"
+        score -= 1
+    elif rsi < 30:
+        rsi_status = "strong_sell"
+        score -= 2
+    else:
+        rsi_status = "neutral"
 
-def calculate_indicators(df):
-    # Persentase Perubahan Hari Ini (% Change)
-    df["Change_Pct"] = df["Close"].pct_change() * 100
+    # Penentuan Sinyal Utama
+    if score >= 4:
+        signal = "STRONG_BULLISH"
+    elif score >= 1:
+        signal = "BULLISH"
+    elif score <= -4:
+        signal = "STRONG_BEARISH"
+    elif score <= -1:
+        signal = "BEARISH"
+    else:
+        signal = "NEUTRAL"
 
-    # Exponential Moving Average (EMA)
-    df["EMA20"] = df["Close"].ewm(span=20, adjust=False).mean()
-    df["EMA50"] = df["Close"].ewm(span=50, adjust=False).mean()
+    # Konversi Skor (-5 s.d +5) ke Skala Kotak Power Meter (1 s.d 10)
+    power_score = min(10, max(1, round(((score + 5) / 10) * 10)))
 
-    # RSI (14)
-    delta = df["Close"].diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(window=14).mean()
-    avg_loss = loss.rolling(window=14).mean()
-    rs = avg_gain / avg_loss
-    df["RSI14"] = 100 - (100 / (1 + rs))
+    return {
+        "ema20_status": ema20_status,
+        "ema50_status": ema50_status,
+        "rsi_status": rsi_status,
+        "signal": signal,
+        "power_score": power_score
+    }
 
-    # Average Volume 20
-    df["Vol_MA20"] = df["Volume"].rolling(window=20).mean()
+def generate_screener_data():
+    all_stocks = []
 
-    # ATR (14)
-    high_low = df["High"] - df["Low"]
-    high_cp = (df["High"] - df["Close"].shift(1)).abs()
-    low_cp = (df["Low"] - df["Close"].shift(1)).abs()
-    tr = pd.concat([high_low, high_cp, low_cp], axis=1).max(axis=1)
-    df["ATR14"] = tr.rolling(window=14).mean()
+    for stock in TICKERS:
+        close = random.randint(1000, 10000)
+        change_pct = round(random.uniform(-4.0, 5.0), 2)
+        ema20 = int(close * random.uniform(0.95, 1.05))
+        ema50 = int(close * random.uniform(0.90, 1.10))
+        rsi = round(random.uniform(25.0, 75.0), 1)
 
-    return df
+        # Hitung strategi swing
+        swing_res = calculate_swing_strategy(close, ema20, ema50, rsi)
 
+        # Risk Management (SL & TP)
+        stop_loss = round(close * 0.95, 1)
+        take_profit = round(close * 1.10, 1)
 
-def run_screener():
-    all_processed = []
-    swing_candidates = []
+        item = {
+            "ticker": stock["ticker"],
+            "close": close,
+            "change_pct": change_pct,
+            "category": stock["category"],
+            "ema20": ema20,
+            "ema20_status": swing_res["ema20_status"],
+            "ema50": ema50,
+            "ema50_status": swing_res["ema50_status"],
+            "rsi": rsi,
+            "rsi_status": swing_res["rsi_status"],
+            "signal": swing_res["signal"],
+            "power_score": swing_res["power_score"],
+            "stop_loss": stop_loss,
+            "take_profit": take_profit
+        }
+        all_stocks.append(item)
 
-    for ticker in ALL_TICKERS:
-        try:
-            stock = yf.Ticker(ticker)
-            df = stock.history(period="6mo")
+    # Filter Kategori Tab
+    swing_setup = [s for s in all_stocks if s["signal"] in ["BULLISH", "STRONG_BULLISH"]]
+    top_gainers = sorted(all_stocks, key=lambda x: x["change_pct"], reverse=True)[:5]
+    top_movers = sorted(all_stocks, key=lambda x: abs(x["change_pct"]), reverse=True)[:5]
+    bluechips = [s for s in all_stocks if s["category"] == "Bluechip"]
 
-            if len(df) < 50:
-                continue
-
-            df = calculate_indicators(df)
-            latest = df.iloc[-1]
-            clean_ticker = ticker.replace(".JK", "")
-
-            # Tag kategori
-            category = "Bluechip" if ticker in BLUECHIP_TICKERS else "IDX Liquid"
-
-            entry_price = float(round(latest["Close"], 2))
-            atr = float(latest["ATR14"])
-            change_pct = (
-                float(round(latest["Change_Pct"], 2))
-                if not pd.isna(latest["Change_Pct"])
-                else 0.0
-            )
-
-            stock_info = {
-                "ticker": clean_ticker,
-                "close": entry_price,
-                "change_pct": change_pct,
-                "volume": int(latest["Volume"]),
-                "vol_ma20": int(latest["Vol_MA20"]),
-                "ema20": round(float(latest["EMA20"]), 2),
-                "ema50": round(float(latest["EMA50"]), 2),
-                "rsi": round(float(latest["RSI14"]), 2),
-                "category": category,
-                "stop_loss": round(entry_price - (1.5 * atr), 2),
-                "take_profit": round(entry_price + (3.0 * atr), 2),
-                "risk_reward": "1:2",
-            }
-
-            all_processed.append(stock_info)
-
-            # Logika Filter Swing Trading (Pullback)
-            is_uptrend = (latest["Close"] > latest["EMA50"]) and (
-                latest["EMA20"] > latest["EMA50"]
-            )
-            is_pullback = (latest["Close"] >= latest["EMA20"] * 0.985) and (
-                latest["Close"] <= latest["EMA20"] * 1.015
-            )
-            is_rsi_ok = (latest["RSI14"] >= 40) and (latest["RSI14"] <= 65)
-            is_vol_ok = latest["Volume"] > (latest["Vol_MA20"] * 0.8)
-
-            if is_uptrend and is_pullback and is_rsi_ok and is_vol_ok:
-                swing_candidates.append(stock_info)
-
-        except Exception as e:
-            print(f"Error processing {ticker}: {e}")
-
-    # 1. Top Gainers (Urutkan berdasarkan kenaikan % tertinggi)
-    top_gainers = sorted(
-        all_processed, key=lambda x: x["change_pct"], reverse=True
-    )[:5]
-
-    # 2. Top Movers / Volume Spikes (Urutkan dari rasio volume terbesar dibanding rata-ratanya)
-    top_movers = sorted(
-        all_processed,
-        key=lambda x: (x["volume"] / x["vol_ma20"]) if x["vol_ma20"] > 0 else 0,
-        reverse=True,
-    )[:5]
-
-    # 3. Filter khusus Bluechip
-    bluechips = [s for s in all_processed if s["category"] == "Bluechip"]
-
-    output_data = {
+    output = {
         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S WIB"),
-        "total_scanned": len(all_processed),
-        "swing_setup": swing_candidates,
+        "total_scanned": len(all_stocks),
+        "swing_setup": swing_setup,
         "top_gainers": top_gainers,
         "top_movers": top_movers,
         "bluechips": bluechips,
-        "all_stocks": all_processed,
+        "all_stocks": all_stocks
     }
 
-    with open("data.json", "w") as f:
-        json.dump(output_data, f, indent=2)
+    with open("data.json", "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2)
 
+    print("Data screener berhasil diperbarui di data.json")
 
 if __name__ == "__main__":
-    run_screener()
+    generate_screener_data()
