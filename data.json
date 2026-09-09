@@ -1,138 +1,478 @@
-import json
-import random
-from datetime import datetime
-
-# Daftar emiten sampel untuk pengujian
-TICKERS = [
-    {"ticker": "BBCA", "category": "Bluechip"},
-    {"ticker": "BBRI", "category": "Bluechip"},
-    {"ticker": "BMRI", "category": "Bluechip"},
-    {"ticker": "TLKM", "category": "Bluechip"},
-    {"ticker": "ASII", "category": "Bluechip"},
-    {"ticker": "BRIS", "category": "IDX Liquid"},
-    {"ticker": "MEDC", "category": "IDX Liquid"},
-    {"ticker": "ANTM", "category": "IDX Liquid"},
-    {"ticker": "PGAS", "category": "IDX Liquid"},
-    {"ticker": "ADRO", "category": "IDX Liquid"}
-]
-
-def calculate_swing_strategy(close, ema20, ema50, rsi):
-    score = 0
-    
-    # Evaluasi EMA 20
-    if close > ema20:
-        ema20_status = "strong_buy" if close >= ema20 * 1.03 else "buy"
-        score += 2 if ema20_status == "strong_buy" else 1
-    elif close < ema20:
-        ema20_status = "strong_sell" if close <= ema20 * 0.97 else "sell"
-        score -= 2 if ema20_status == "strong_sell" else 1
-    else:
-        ema20_status = "neutral"
-
-    # Evaluasi EMA 50
-    if ema20 > ema50:
-        ema50_status = "strong_buy" if close > ema50 else "buy"
-        score += 2 if ema50_status == "strong_buy" else 1
-    elif ema20 < ema50:
-        ema50_status = "strong_sell" if close < ema50 else "sell"
-        score -= 2 if ema50_status == "strong_sell" else 1
-    else:
-        ema50_status = "neutral"
-
-    # Evaluasi RSI
-    if rsi >= 65:
-        rsi_status = "strong_buy"
-        score += 2
-    elif 50 <= rsi < 65:
-        rsi_status = "buy"
-        score += 1
-    elif 30 <= rsi <= 40:
-        rsi_status = "sell"
-        score -= 1
-    elif rsi < 30:
-        rsi_status = "strong_sell"
-        score -= 2
-    else:
-        rsi_status = "neutral"
-
-    # Penentuan Sinyal Utama
-    if score >= 4:
-        signal = "STRONG_BULLISH"
-    elif score >= 1:
-        signal = "BULLISH"
-    elif score <= -4:
-        signal = "STRONG_BEARISH"
-    elif score <= -1:
-        signal = "BEARISH"
-    else:
-        signal = "NEUTRAL"
-
-    # Konversi Skor (-5 s.d +5) ke Skala Kotak Power Meter (1 s.d 10)
-    power_score = min(10, max(1, round(((score + 5) / 10) * 10)))
-
-    return {
-        "ema20_status": ema20_status,
-        "ema50_status": ema50_status,
-        "rsi_status": rsi_status,
-        "signal": signal,
-        "power_score": power_score
+{
+  "last_updated": "2026-09-09 14:33:12 WIB",
+  "total_scanned": 10,
+  "swing_setup": [
+    {
+      "ticker": "BBRI",
+      "close": 5420,
+      "change_pct": 2.87,
+      "category": "Bluechip",
+      "ema20": 5486,
+      "ema20_status": "sell",
+      "ema50": 5363,
+      "ema50_status": "strong_buy",
+      "rsi": 58.1,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 7,
+      "stop_loss": 5149.0,
+      "take_profit": 5962.0
+    },
+    {
+      "ticker": "ASII",
+      "close": 7328,
+      "change_pct": 0.03,
+      "category": "Bluechip",
+      "ema20": 7259,
+      "ema20_status": "buy",
+      "ema50": 6970,
+      "ema50_status": "strong_buy",
+      "rsi": 48.5,
+      "rsi_status": "neutral",
+      "signal": "BULLISH",
+      "power_score": 8,
+      "stop_loss": 6961.6,
+      "take_profit": 8060.8
+    },
+    {
+      "ticker": "ANTM",
+      "close": 5285,
+      "change_pct": 0.49,
+      "category": "IDX Liquid",
+      "ema20": 5381,
+      "ema20_status": "sell",
+      "ema50": 5328,
+      "ema50_status": "buy",
+      "rsi": 63.8,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 6,
+      "stop_loss": 5020.8,
+      "take_profit": 5813.5
+    },
+    {
+      "ticker": "PGAS",
+      "close": 5107,
+      "change_pct": -3.73,
+      "category": "IDX Liquid",
+      "ema20": 4877,
+      "ema20_status": "strong_buy",
+      "ema50": 5509,
+      "ema50_status": "strong_sell",
+      "rsi": 63.6,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 6,
+      "stop_loss": 4851.6,
+      "take_profit": 5617.7
     }
-
-def generate_screener_data():
-    all_stocks = []
-
-    for stock in TICKERS:
-        close = random.randint(1000, 10000)
-        change_pct = round(random.uniform(-4.0, 5.0), 2)
-        ema20 = int(close * random.uniform(0.95, 1.05))
-        ema50 = int(close * random.uniform(0.90, 1.10))
-        rsi = round(random.uniform(25.0, 75.0), 1)
-
-        # Hitung strategi swing
-        swing_res = calculate_swing_strategy(close, ema20, ema50, rsi)
-
-        # Risk Management (SL & TP)
-        stop_loss = round(close * 0.95, 1)
-        take_profit = round(close * 1.10, 1)
-
-        item = {
-            "ticker": stock["ticker"],
-            "close": close,
-            "change_pct": change_pct,
-            "category": stock["category"],
-            "ema20": ema20,
-            "ema20_status": swing_res["ema20_status"],
-            "ema50": ema50,
-            "ema50_status": swing_res["ema50_status"],
-            "rsi": rsi,
-            "rsi_status": swing_res["rsi_status"],
-            "signal": swing_res["signal"],
-            "power_score": swing_res["power_score"],
-            "stop_loss": stop_loss,
-            "take_profit": take_profit
-        }
-        all_stocks.append(item)
-
-    # Filter Kategori Tab
-    swing_setup = [s for s in all_stocks if s["signal"] in ["BULLISH", "STRONG_BULLISH"]]
-    top_gainers = sorted(all_stocks, key=lambda x: x["change_pct"], reverse=True)[:5]
-    top_movers = sorted(all_stocks, key=lambda x: abs(x["change_pct"]), reverse=True)[:5]
-    bluechips = [s for s in all_stocks if s["category"] == "Bluechip"]
-
-    output = {
-        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S WIB"),
-        "total_scanned": len(all_stocks),
-        "swing_setup": swing_setup,
-        "top_gainers": top_gainers,
-        "top_movers": top_movers,
-        "bluechips": bluechips,
-        "all_stocks": all_stocks
+  ],
+  "top_gainers": [
+    {
+      "ticker": "BBRI",
+      "close": 5420,
+      "change_pct": 2.87,
+      "category": "Bluechip",
+      "ema20": 5486,
+      "ema20_status": "sell",
+      "ema50": 5363,
+      "ema50_status": "strong_buy",
+      "rsi": 58.1,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 7,
+      "stop_loss": 5149.0,
+      "take_profit": 5962.0
+    },
+    {
+      "ticker": "BRIS",
+      "close": 3974,
+      "change_pct": 1.72,
+      "category": "IDX Liquid",
+      "ema20": 4037,
+      "ema20_status": "sell",
+      "ema50": 4342,
+      "ema50_status": "strong_sell",
+      "rsi": 56.8,
+      "rsi_status": "buy",
+      "signal": "BEARISH",
+      "power_score": 3,
+      "stop_loss": 3775.3,
+      "take_profit": 4371.4
+    },
+    {
+      "ticker": "TLKM",
+      "close": 8926,
+      "change_pct": 1.55,
+      "category": "Bluechip",
+      "ema20": 9274,
+      "ema20_status": "strong_sell",
+      "ema50": 9121,
+      "ema50_status": "buy",
+      "rsi": 41.6,
+      "rsi_status": "neutral",
+      "signal": "BEARISH",
+      "power_score": 4,
+      "stop_loss": 8479.7,
+      "take_profit": 9818.6
+    },
+    {
+      "ticker": "ANTM",
+      "close": 5285,
+      "change_pct": 0.49,
+      "category": "IDX Liquid",
+      "ema20": 5381,
+      "ema20_status": "sell",
+      "ema50": 5328,
+      "ema50_status": "buy",
+      "rsi": 63.8,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 6,
+      "stop_loss": 5020.8,
+      "take_profit": 5813.5
+    },
+    {
+      "ticker": "ASII",
+      "close": 7328,
+      "change_pct": 0.03,
+      "category": "Bluechip",
+      "ema20": 7259,
+      "ema20_status": "buy",
+      "ema50": 6970,
+      "ema50_status": "strong_buy",
+      "rsi": 48.5,
+      "rsi_status": "neutral",
+      "signal": "BULLISH",
+      "power_score": 8,
+      "stop_loss": 6961.6,
+      "take_profit": 8060.8
     }
-
-    with open("data.json", "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=2)
-
-    print("Data screener berhasil diperbarui di data.json")
-
-if __name__ == "__main__":
-    generate_screener_data()
+  ],
+  "top_movers": [
+    {
+      "ticker": "ADRO",
+      "close": 2065,
+      "change_pct": -3.99,
+      "category": "IDX Liquid",
+      "ema20": 2128,
+      "ema20_status": "sell",
+      "ema50": 2183,
+      "ema50_status": "strong_sell",
+      "rsi": 32.3,
+      "rsi_status": "sell",
+      "signal": "STRONG_BEARISH",
+      "power_score": 1,
+      "stop_loss": 1961.8,
+      "take_profit": 2271.5
+    },
+    {
+      "ticker": "PGAS",
+      "close": 5107,
+      "change_pct": -3.73,
+      "category": "IDX Liquid",
+      "ema20": 4877,
+      "ema20_status": "strong_buy",
+      "ema50": 5509,
+      "ema50_status": "strong_sell",
+      "rsi": 63.6,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 6,
+      "stop_loss": 4851.6,
+      "take_profit": 5617.7
+    },
+    {
+      "ticker": "MEDC",
+      "close": 4504,
+      "change_pct": -3.72,
+      "category": "IDX Liquid",
+      "ema20": 4471,
+      "ema20_status": "buy",
+      "ema50": 4501,
+      "ema50_status": "sell",
+      "rsi": 38.9,
+      "rsi_status": "sell",
+      "signal": "BEARISH",
+      "power_score": 4,
+      "stop_loss": 4278.8,
+      "take_profit": 4954.4
+    },
+    {
+      "ticker": "BBCA",
+      "close": 4243,
+      "change_pct": -3.14,
+      "category": "Bluechip",
+      "ema20": 4266,
+      "ema20_status": "sell",
+      "ema50": 4324,
+      "ema50_status": "strong_sell",
+      "rsi": 46.9,
+      "rsi_status": "neutral",
+      "signal": "BEARISH",
+      "power_score": 2,
+      "stop_loss": 4030.8,
+      "take_profit": 4667.3
+    },
+    {
+      "ticker": "BBRI",
+      "close": 5420,
+      "change_pct": 2.87,
+      "category": "Bluechip",
+      "ema20": 5486,
+      "ema20_status": "sell",
+      "ema50": 5363,
+      "ema50_status": "strong_buy",
+      "rsi": 58.1,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 7,
+      "stop_loss": 5149.0,
+      "take_profit": 5962.0
+    }
+  ],
+  "bluechips": [
+    {
+      "ticker": "BBCA",
+      "close": 4243,
+      "change_pct": -3.14,
+      "category": "Bluechip",
+      "ema20": 4266,
+      "ema20_status": "sell",
+      "ema50": 4324,
+      "ema50_status": "strong_sell",
+      "rsi": 46.9,
+      "rsi_status": "neutral",
+      "signal": "BEARISH",
+      "power_score": 2,
+      "stop_loss": 4030.8,
+      "take_profit": 4667.3
+    },
+    {
+      "ticker": "BBRI",
+      "close": 5420,
+      "change_pct": 2.87,
+      "category": "Bluechip",
+      "ema20": 5486,
+      "ema20_status": "sell",
+      "ema50": 5363,
+      "ema50_status": "strong_buy",
+      "rsi": 58.1,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 7,
+      "stop_loss": 5149.0,
+      "take_profit": 5962.0
+    },
+    {
+      "ticker": "BMRI",
+      "close": 2834,
+      "change_pct": -1.97,
+      "category": "Bluechip",
+      "ema20": 2926,
+      "ema20_status": "strong_sell",
+      "ema50": 2874,
+      "ema50_status": "buy",
+      "rsi": 29.8,
+      "rsi_status": "strong_sell",
+      "signal": "BEARISH",
+      "power_score": 2,
+      "stop_loss": 2692.3,
+      "take_profit": 3117.4
+    },
+    {
+      "ticker": "TLKM",
+      "close": 8926,
+      "change_pct": 1.55,
+      "category": "Bluechip",
+      "ema20": 9274,
+      "ema20_status": "strong_sell",
+      "ema50": 9121,
+      "ema50_status": "buy",
+      "rsi": 41.6,
+      "rsi_status": "neutral",
+      "signal": "BEARISH",
+      "power_score": 4,
+      "stop_loss": 8479.7,
+      "take_profit": 9818.6
+    },
+    {
+      "ticker": "ASII",
+      "close": 7328,
+      "change_pct": 0.03,
+      "category": "Bluechip",
+      "ema20": 7259,
+      "ema20_status": "buy",
+      "ema50": 6970,
+      "ema50_status": "strong_buy",
+      "rsi": 48.5,
+      "rsi_status": "neutral",
+      "signal": "BULLISH",
+      "power_score": 8,
+      "stop_loss": 6961.6,
+      "take_profit": 8060.8
+    }
+  ],
+  "all_stocks": [
+    {
+      "ticker": "BBCA",
+      "close": 4243,
+      "change_pct": -3.14,
+      "category": "Bluechip",
+      "ema20": 4266,
+      "ema20_status": "sell",
+      "ema50": 4324,
+      "ema50_status": "strong_sell",
+      "rsi": 46.9,
+      "rsi_status": "neutral",
+      "signal": "BEARISH",
+      "power_score": 2,
+      "stop_loss": 4030.8,
+      "take_profit": 4667.3
+    },
+    {
+      "ticker": "BBRI",
+      "close": 5420,
+      "change_pct": 2.87,
+      "category": "Bluechip",
+      "ema20": 5486,
+      "ema20_status": "sell",
+      "ema50": 5363,
+      "ema50_status": "strong_buy",
+      "rsi": 58.1,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 7,
+      "stop_loss": 5149.0,
+      "take_profit": 5962.0
+    },
+    {
+      "ticker": "BMRI",
+      "close": 2834,
+      "change_pct": -1.97,
+      "category": "Bluechip",
+      "ema20": 2926,
+      "ema20_status": "strong_sell",
+      "ema50": 2874,
+      "ema50_status": "buy",
+      "rsi": 29.8,
+      "rsi_status": "strong_sell",
+      "signal": "BEARISH",
+      "power_score": 2,
+      "stop_loss": 2692.3,
+      "take_profit": 3117.4
+    },
+    {
+      "ticker": "TLKM",
+      "close": 8926,
+      "change_pct": 1.55,
+      "category": "Bluechip",
+      "ema20": 9274,
+      "ema20_status": "strong_sell",
+      "ema50": 9121,
+      "ema50_status": "buy",
+      "rsi": 41.6,
+      "rsi_status": "neutral",
+      "signal": "BEARISH",
+      "power_score": 4,
+      "stop_loss": 8479.7,
+      "take_profit": 9818.6
+    },
+    {
+      "ticker": "ASII",
+      "close": 7328,
+      "change_pct": 0.03,
+      "category": "Bluechip",
+      "ema20": 7259,
+      "ema20_status": "buy",
+      "ema50": 6970,
+      "ema50_status": "strong_buy",
+      "rsi": 48.5,
+      "rsi_status": "neutral",
+      "signal": "BULLISH",
+      "power_score": 8,
+      "stop_loss": 6961.6,
+      "take_profit": 8060.8
+    },
+    {
+      "ticker": "BRIS",
+      "close": 3974,
+      "change_pct": 1.72,
+      "category": "IDX Liquid",
+      "ema20": 4037,
+      "ema20_status": "sell",
+      "ema50": 4342,
+      "ema50_status": "strong_sell",
+      "rsi": 56.8,
+      "rsi_status": "buy",
+      "signal": "BEARISH",
+      "power_score": 3,
+      "stop_loss": 3775.3,
+      "take_profit": 4371.4
+    },
+    {
+      "ticker": "MEDC",
+      "close": 4504,
+      "change_pct": -3.72,
+      "category": "IDX Liquid",
+      "ema20": 4471,
+      "ema20_status": "buy",
+      "ema50": 4501,
+      "ema50_status": "sell",
+      "rsi": 38.9,
+      "rsi_status": "sell",
+      "signal": "BEARISH",
+      "power_score": 4,
+      "stop_loss": 4278.8,
+      "take_profit": 4954.4
+    },
+    {
+      "ticker": "ANTM",
+      "close": 5285,
+      "change_pct": 0.49,
+      "category": "IDX Liquid",
+      "ema20": 5381,
+      "ema20_status": "sell",
+      "ema50": 5328,
+      "ema50_status": "buy",
+      "rsi": 63.8,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 6,
+      "stop_loss": 5020.8,
+      "take_profit": 5813.5
+    },
+    {
+      "ticker": "PGAS",
+      "close": 5107,
+      "change_pct": -3.73,
+      "category": "IDX Liquid",
+      "ema20": 4877,
+      "ema20_status": "strong_buy",
+      "ema50": 5509,
+      "ema50_status": "strong_sell",
+      "rsi": 63.6,
+      "rsi_status": "buy",
+      "signal": "BULLISH",
+      "power_score": 6,
+      "stop_loss": 4851.6,
+      "take_profit": 5617.7
+    },
+    {
+      "ticker": "ADRO",
+      "close": 2065,
+      "change_pct": -3.99,
+      "category": "IDX Liquid",
+      "ema20": 2128,
+      "ema20_status": "sell",
+      "ema50": 2183,
+      "ema50_status": "strong_sell",
+      "rsi": 32.3,
+      "rsi_status": "sell",
+      "signal": "STRONG_BEARISH",
+      "power_score": 1,
+      "stop_loss": 1961.8,
+      "take_profit": 2271.5
+    }
+  ]
+}
