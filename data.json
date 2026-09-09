@@ -1,714 +1,138 @@
-{
-  "last_updated": "2026-09-09 14:10:27 WIB",
-  "total_scanned": 27,
-  "swing_setup": [
-    {
-      "ticker": "BBCA",
-      "close": 6525.0,
-      "change_pct": -2.25,
-      "volume": 193375100,
-      "vol_ma20": 104920240,
-      "ema20": 6500.95,
-      "ema50": 6354.3,
-      "rsi": 61.89,
-      "category": "Bluechip",
-      "stop_loss": 6319.0,
-      "take_profit": 6937.0,
-      "risk_reward": "1:2"
+import json
+import random
+from datetime import datetime
+
+# Daftar emiten sampel untuk pengujian
+TICKERS = [
+    {"ticker": "BBCA", "category": "Bluechip"},
+    {"ticker": "BBRI", "category": "Bluechip"},
+    {"ticker": "BMRI", "category": "Bluechip"},
+    {"ticker": "TLKM", "category": "Bluechip"},
+    {"ticker": "ASII", "category": "Bluechip"},
+    {"ticker": "BRIS", "category": "IDX Liquid"},
+    {"ticker": "MEDC", "category": "IDX Liquid"},
+    {"ticker": "ANTM", "category": "IDX Liquid"},
+    {"ticker": "PGAS", "category": "IDX Liquid"},
+    {"ticker": "ADRO", "category": "IDX Liquid"}
+]
+
+def calculate_swing_strategy(close, ema20, ema50, rsi):
+    score = 0
+    
+    # Evaluasi EMA 20
+    if close > ema20:
+        ema20_status = "strong_buy" if close >= ema20 * 1.03 else "buy"
+        score += 2 if ema20_status == "strong_buy" else 1
+    elif close < ema20:
+        ema20_status = "strong_sell" if close <= ema20 * 0.97 else "sell"
+        score -= 2 if ema20_status == "strong_sell" else 1
+    else:
+        ema20_status = "neutral"
+
+    # Evaluasi EMA 50
+    if ema20 > ema50:
+        ema50_status = "strong_buy" if close > ema50 else "buy"
+        score += 2 if ema50_status == "strong_buy" else 1
+    elif ema20 < ema50:
+        ema50_status = "strong_sell" if close < ema50 else "sell"
+        score -= 2 if ema50_status == "strong_sell" else 1
+    else:
+        ema50_status = "neutral"
+
+    # Evaluasi RSI
+    if rsi >= 65:
+        rsi_status = "strong_buy"
+        score += 2
+    elif 50 <= rsi < 65:
+        rsi_status = "buy"
+        score += 1
+    elif 30 <= rsi <= 40:
+        rsi_status = "sell"
+        score -= 1
+    elif rsi < 30:
+        rsi_status = "strong_sell"
+        score -= 2
+    else:
+        rsi_status = "neutral"
+
+    # Penentuan Sinyal Utama
+    if score >= 4:
+        signal = "STRONG_BULLISH"
+    elif score >= 1:
+        signal = "BULLISH"
+    elif score <= -4:
+        signal = "STRONG_BEARISH"
+    elif score <= -1:
+        signal = "BEARISH"
+    else:
+        signal = "NEUTRAL"
+
+    # Konversi Skor (-5 s.d +5) ke Skala Kotak Power Meter (1 s.d 10)
+    power_score = min(10, max(1, round(((score + 5) / 10) * 10)))
+
+    return {
+        "ema20_status": ema20_status,
+        "ema50_status": ema50_status,
+        "rsi_status": rsi_status,
+        "signal": signal,
+        "power_score": power_score
     }
-  ],
-  "top_gainers": [
-    {
-      "ticker": "AMMN",
-      "close": 4910.0,
-      "change_pct": 5.14,
-      "volume": 122894600,
-      "vol_ma20": 60907915,
-      "ema20": 4412.15,
-      "ema50": 4220.74,
-      "rsi": 75.84,
-      "category": "IDX Liquid",
-      "stop_loss": 4667.86,
-      "take_profit": 5394.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ANTM",
-      "close": 3200.0,
-      "change_pct": 3.9,
-      "volume": 205956800,
-      "vol_ma20": 95485600,
-      "ema20": 3103.69,
-      "ema50": 3055.44,
-      "rsi": 55.36,
-      "category": "IDX Liquid",
-      "stop_loss": 3084.29,
-      "take_profit": 3431.43,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "PTBA",
-      "close": 3100.0,
-      "change_pct": 3.33,
-      "volume": 104634100,
-      "vol_ma20": 40840415,
-      "ema20": 2678.57,
-      "ema50": 2550.05,
-      "rsi": 90.7,
-      "category": "IDX Liquid",
-      "stop_loss": 2932.86,
-      "take_profit": 3434.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "MEDC",
-      "close": 1575.0,
-      "change_pct": 2.61,
-      "volume": 51640600,
-      "vol_ma20": 51161350,
-      "ema20": 1426.55,
-      "ema50": 1360.61,
-      "rsi": 68.24,
-      "category": "IDX Liquid",
-      "stop_loss": 1494.11,
-      "take_profit": 1736.79,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "AKRA",
-      "close": 1550.0,
-      "change_pct": 1.64,
-      "volume": 29606000,
-      "vol_ma20": 17386685,
-      "ema20": 1423.94,
-      "ema50": 1380.04,
-      "rsi": 68.6,
-      "category": "IDX Liquid",
-      "stop_loss": 1480.36,
-      "take_profit": 1689.29,
-      "risk_reward": "1:2"
+
+def generate_screener_data():
+    all_stocks = []
+
+    for stock in TICKERS:
+        close = random.randint(1000, 10000)
+        change_pct = round(random.uniform(-4.0, 5.0), 2)
+        ema20 = int(close * random.uniform(0.95, 1.05))
+        ema50 = int(close * random.uniform(0.90, 1.10))
+        rsi = round(random.uniform(25.0, 75.0), 1)
+
+        # Hitung strategi swing
+        swing_res = calculate_swing_strategy(close, ema20, ema50, rsi)
+
+        # Risk Management (SL & TP)
+        stop_loss = round(close * 0.95, 1)
+        take_profit = round(close * 1.10, 1)
+
+        item = {
+            "ticker": stock["ticker"],
+            "close": close,
+            "change_pct": change_pct,
+            "category": stock["category"],
+            "ema20": ema20,
+            "ema20_status": swing_res["ema20_status"],
+            "ema50": ema50,
+            "ema50_status": swing_res["ema50_status"],
+            "rsi": rsi,
+            "rsi_status": swing_res["rsi_status"],
+            "signal": swing_res["signal"],
+            "power_score": swing_res["power_score"],
+            "stop_loss": stop_loss,
+            "take_profit": take_profit
+        }
+        all_stocks.append(item)
+
+    # Filter Kategori Tab
+    swing_setup = [s for s in all_stocks if s["signal"] in ["BULLISH", "STRONG_BULLISH"]]
+    top_gainers = sorted(all_stocks, key=lambda x: x["change_pct"], reverse=True)[:5]
+    top_movers = sorted(all_stocks, key=lambda x: abs(x["change_pct"]), reverse=True)[:5]
+    bluechips = [s for s in all_stocks if s["category"] == "Bluechip"]
+
+    output = {
+        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S WIB"),
+        "total_scanned": len(all_stocks),
+        "swing_setup": swing_setup,
+        "top_gainers": top_gainers,
+        "top_movers": top_movers,
+        "bluechips": bluechips,
+        "all_stocks": all_stocks
     }
-  ],
-  "top_movers": [
-    {
-      "ticker": "PTBA",
-      "close": 3100.0,
-      "change_pct": 3.33,
-      "volume": 104634100,
-      "vol_ma20": 40840415,
-      "ema20": 2678.57,
-      "ema50": 2550.05,
-      "rsi": 90.7,
-      "category": "IDX Liquid",
-      "stop_loss": 2932.86,
-      "take_profit": 3434.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ANTM",
-      "close": 3200.0,
-      "change_pct": 3.9,
-      "volume": 205956800,
-      "vol_ma20": 95485600,
-      "ema20": 3103.69,
-      "ema50": 3055.44,
-      "rsi": 55.36,
-      "category": "IDX Liquid",
-      "stop_loss": 3084.29,
-      "take_profit": 3431.43,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "AMMN",
-      "close": 4910.0,
-      "change_pct": 5.14,
-      "volume": 122894600,
-      "vol_ma20": 60907915,
-      "ema20": 4412.15,
-      "ema50": 4220.74,
-      "rsi": 75.84,
-      "category": "IDX Liquid",
-      "stop_loss": 4667.86,
-      "take_profit": 5394.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BBCA",
-      "close": 6525.0,
-      "change_pct": -2.25,
-      "volume": 193375100,
-      "vol_ma20": 104920240,
-      "ema20": 6500.95,
-      "ema50": 6354.3,
-      "rsi": 61.89,
-      "category": "Bluechip",
-      "stop_loss": 6319.0,
-      "take_profit": 6937.0,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "AKRA",
-      "close": 1550.0,
-      "change_pct": 1.64,
-      "volume": 29606000,
-      "vol_ma20": 17386685,
-      "ema20": 1423.94,
-      "ema50": 1380.04,
-      "rsi": 68.6,
-      "category": "IDX Liquid",
-      "stop_loss": 1480.36,
-      "take_profit": 1689.29,
-      "risk_reward": "1:2"
-    }
-  ],
-  "bluechips": [
-    {
-      "ticker": "BBCA",
-      "close": 6525.0,
-      "change_pct": -2.25,
-      "volume": 193375100,
-      "vol_ma20": 104920240,
-      "ema20": 6500.95,
-      "ema50": 6354.3,
-      "rsi": 61.89,
-      "category": "Bluechip",
-      "stop_loss": 6319.0,
-      "take_profit": 6937.0,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ASII",
-      "close": 4850.0,
-      "change_pct": -1.62,
-      "volume": 35658000,
-      "vol_ma20": 48193400,
-      "ema20": 4878.8,
-      "ema50": 4928.51,
-      "rsi": 54.17,
-      "category": "Bluechip",
-      "stop_loss": 4702.14,
-      "take_profit": 5145.71,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "GOTO",
-      "close": 50.0,
-      "change_pct": 0.0,
-      "volume": 16866200,
-      "vol_ma20": 15432870,
-      "ema20": 50.0,
-      "ema50": 50.1,
-      "rsi": NaN,
-      "category": "Bluechip",
-      "stop_loss": 50.0,
-      "take_profit": 50.0,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "CPIN",
-      "close": 3260.0,
-      "change_pct": -2.4,
-      "volume": 59699300,
-      "vol_ma20": 54018805,
-      "ema20": 3139.5,
-      "ema50": 3189.19,
-      "rsi": 65.96,
-      "category": "Bluechip",
-      "stop_loss": 3101.43,
-      "take_profit": 3577.14,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ICBP",
-      "close": 7200.0,
-      "change_pct": 0.0,
-      "volume": 7180200,
-      "vol_ma20": 5634730,
-      "ema20": 7418.14,
-      "ema50": 7222.36,
-      "rsi": 29.79,
-      "category": "Bluechip",
-      "stop_loss": 6873.21,
-      "take_profit": 7853.57,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "AMRT",
-      "close": 1310.0,
-      "change_pct": 0.0,
-      "volume": 40247100,
-      "vol_ma20": 33976650,
-      "ema20": 1344.21,
-      "ema50": 1358.09,
-      "rsi": 41.82,
-      "category": "Bluechip",
-      "stop_loss": 1255.36,
-      "take_profit": 1419.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "KLBF",
-      "close": 760.0,
-      "change_pct": -2.56,
-      "volume": 117405100,
-      "vol_ma20": 76456610,
-      "ema20": 780.35,
-      "ema50": 775.47,
-      "rsi": 25.93,
-      "category": "Bluechip",
-      "stop_loss": 723.57,
-      "take_profit": 832.86,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BBRI",
-      "close": 3420.0,
-      "change_pct": 0.29,
-      "volume": 156865000,
-      "vol_ma20": 180413580,
-      "ema20": 3259.74,
-      "ema50": 3132.27,
-      "rsi": 75.0,
-      "category": "Bluechip",
-      "stop_loss": 3318.21,
-      "take_profit": 3623.57,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "TLKM",
-      "close": 2660.0,
-      "change_pct": 0.38,
-      "volume": 119056300,
-      "vol_ma20": 88739905,
-      "ema20": 2617.64,
-      "ema50": 2619.92,
-      "rsi": 61.9,
-      "category": "Bluechip",
-      "stop_loss": 2600.0,
-      "take_profit": 2780.0,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "UNVR",
-      "close": 1675.0,
-      "change_pct": 0.0,
-      "volume": 8950100,
-      "vol_ma20": 16851430,
-      "ema20": 1727.54,
-      "ema50": 1727.16,
-      "rsi": 10.0,
-      "category": "Bluechip",
-      "stop_loss": 1617.68,
-      "take_profit": 1789.64,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BBNI",
-      "close": 3820.0,
-      "change_pct": -1.29,
-      "volume": 52644400,
-      "vol_ma20": 38476515,
-      "ema20": 3775.21,
-      "ema50": 3674.85,
-      "rsi": 68.85,
-      "category": "Bluechip",
-      "stop_loss": 3693.57,
-      "take_profit": 4072.86,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BMRI",
-      "close": 4390.0,
-      "change_pct": -0.9,
-      "volume": 125622500,
-      "vol_ma20": 118589285,
-      "ema20": 4296.61,
-      "ema50": 4236.17,
-      "rsi": 69.35,
-      "category": "Bluechip",
-      "stop_loss": 4291.43,
-      "take_profit": 4587.14,
-      "risk_reward": "1:2"
-    }
-  ],
-  "all_stocks": [
-    {
-      "ticker": "BBCA",
-      "close": 6525.0,
-      "change_pct": -2.25,
-      "volume": 193375100,
-      "vol_ma20": 104920240,
-      "ema20": 6500.95,
-      "ema50": 6354.3,
-      "rsi": 61.89,
-      "category": "Bluechip",
-      "stop_loss": 6319.0,
-      "take_profit": 6937.0,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ANTM",
-      "close": 3200.0,
-      "change_pct": 3.9,
-      "volume": 205956800,
-      "vol_ma20": 95485600,
-      "ema20": 3103.69,
-      "ema50": 3055.44,
-      "rsi": 55.36,
-      "category": "IDX Liquid",
-      "stop_loss": 3084.29,
-      "take_profit": 3431.43,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ASII",
-      "close": 4850.0,
-      "change_pct": -1.62,
-      "volume": 35658000,
-      "vol_ma20": 48193400,
-      "ema20": 4878.8,
-      "ema50": 4928.51,
-      "rsi": 54.17,
-      "category": "Bluechip",
-      "stop_loss": 4702.14,
-      "take_profit": 5145.71,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "MEDC",
-      "close": 1575.0,
-      "change_pct": 2.61,
-      "volume": 51640600,
-      "vol_ma20": 51161350,
-      "ema20": 1426.55,
-      "ema50": 1360.61,
-      "rsi": 68.24,
-      "category": "IDX Liquid",
-      "stop_loss": 1494.11,
-      "take_profit": 1736.79,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "GOTO",
-      "close": 50.0,
-      "change_pct": 0.0,
-      "volume": 16866200,
-      "vol_ma20": 15432870,
-      "ema20": 50.0,
-      "ema50": 50.1,
-      "rsi": NaN,
-      "category": "Bluechip",
-      "stop_loss": 50.0,
-      "take_profit": 50.0,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "MBMA",
-      "close": 550.0,
-      "change_pct": -1.79,
-      "volume": 175864700,
-      "vol_ma20": 142129365,
-      "ema20": 537.3,
-      "ema50": 533.37,
-      "rsi": 58.7,
-      "category": "IDX Liquid",
-      "stop_loss": 503.39,
-      "take_profit": 643.21,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "AKRA",
-      "close": 1550.0,
-      "change_pct": 1.64,
-      "volume": 29606000,
-      "vol_ma20": 17386685,
-      "ema20": 1423.94,
-      "ema50": 1380.04,
-      "rsi": 68.6,
-      "category": "IDX Liquid",
-      "stop_loss": 1480.36,
-      "take_profit": 1689.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "AMMN",
-      "close": 4910.0,
-      "change_pct": 5.14,
-      "volume": 122894600,
-      "vol_ma20": 60907915,
-      "ema20": 4412.15,
-      "ema50": 4220.74,
-      "rsi": 75.84,
-      "category": "IDX Liquid",
-      "stop_loss": 4667.86,
-      "take_profit": 5394.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "CPIN",
-      "close": 3260.0,
-      "change_pct": -2.4,
-      "volume": 59699300,
-      "vol_ma20": 54018805,
-      "ema20": 3139.5,
-      "ema50": 3189.19,
-      "rsi": 65.96,
-      "category": "Bluechip",
-      "stop_loss": 3101.43,
-      "take_profit": 3577.14,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ICBP",
-      "close": 7200.0,
-      "change_pct": 0.0,
-      "volume": 7180200,
-      "vol_ma20": 5634730,
-      "ema20": 7418.14,
-      "ema50": 7222.36,
-      "rsi": 29.79,
-      "category": "Bluechip",
-      "stop_loss": 6873.21,
-      "take_profit": 7853.57,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "PGAS",
-      "close": 1545.0,
-      "change_pct": 0.32,
-      "volume": 21931600,
-      "vol_ma20": 30936760,
-      "ema20": 1525.63,
-      "ema50": 1528.44,
-      "rsi": 55.0,
-      "category": "IDX Liquid",
-      "stop_loss": 1500.54,
-      "take_profit": 1633.93,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "TPIA",
-      "close": 1935.0,
-      "change_pct": -0.77,
-      "volume": 122353400,
-      "vol_ma20": 249148285,
-      "ema20": 1993.41,
-      "ema50": 2145.98,
-      "rsi": 48.48,
-      "category": "IDX Liquid",
-      "stop_loss": 1824.64,
-      "take_profit": 2155.71,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "AMRT",
-      "close": 1310.0,
-      "change_pct": 0.0,
-      "volume": 40247100,
-      "vol_ma20": 33976650,
-      "ema20": 1344.21,
-      "ema50": 1358.09,
-      "rsi": 41.82,
-      "category": "Bluechip",
-      "stop_loss": 1255.36,
-      "take_profit": 1419.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "KLBF",
-      "close": 760.0,
-      "change_pct": -2.56,
-      "volume": 117405100,
-      "vol_ma20": 76456610,
-      "ema20": 780.35,
-      "ema50": 775.47,
-      "rsi": 25.93,
-      "category": "Bluechip",
-      "stop_loss": 723.57,
-      "take_profit": 832.86,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "CUAN",
-      "close": 940.0,
-      "change_pct": 0.53,
-      "volume": 252878900,
-      "vol_ma20": 622178765,
-      "ema20": 853.34,
-      "ema50": 797.67,
-      "rsi": 72.73,
-      "category": "IDX Liquid",
-      "stop_loss": 863.39,
-      "take_profit": 1093.21,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BREN",
-      "close": 3300.0,
-      "change_pct": 0.0,
-      "volume": 8622000,
-      "vol_ma20": 32391570,
-      "ema20": 3379.29,
-      "ema50": 3489.86,
-      "rsi": 36.84,
-      "category": "IDX Liquid",
-      "stop_loss": 3152.14,
-      "take_profit": 3595.71,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "INCO",
-      "close": 4900.0,
-      "change_pct": 0.0,
-      "volume": 19011200,
-      "vol_ma20": 11511255,
-      "ema20": 5054.09,
-      "ema50": 5065.91,
-      "rsi": 34.23,
-      "category": "IDX Liquid",
-      "stop_loss": 4692.68,
-      "take_profit": 5314.64,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BBRI",
-      "close": 3420.0,
-      "change_pct": 0.29,
-      "volume": 156865000,
-      "vol_ma20": 180413580,
-      "ema20": 3259.74,
-      "ema50": 3132.27,
-      "rsi": 75.0,
-      "category": "Bluechip",
-      "stop_loss": 3318.21,
-      "take_profit": 3623.57,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "TLKM",
-      "close": 2660.0,
-      "change_pct": 0.38,
-      "volume": 119056300,
-      "vol_ma20": 88739905,
-      "ema20": 2617.64,
-      "ema50": 2619.92,
-      "rsi": 61.9,
-      "category": "Bluechip",
-      "stop_loss": 2600.0,
-      "take_profit": 2780.0,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "UNVR",
-      "close": 1675.0,
-      "change_pct": 0.0,
-      "volume": 8950100,
-      "vol_ma20": 16851430,
-      "ema20": 1727.54,
-      "ema50": 1727.16,
-      "rsi": 10.0,
-      "category": "Bluechip",
-      "stop_loss": 1617.68,
-      "take_profit": 1789.64,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ADRO",
-      "close": 2690.0,
-      "change_pct": 0.0,
-      "volume": 68999600,
-      "vol_ma20": 46082540,
-      "ema20": 2648.01,
-      "ema50": 2550.24,
-      "rsi": 58.9,
-      "category": "IDX Liquid",
-      "stop_loss": 2558.21,
-      "take_profit": 2953.57,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "PTBA",
-      "close": 3100.0,
-      "change_pct": 3.33,
-      "volume": 104634100,
-      "vol_ma20": 40840415,
-      "ema20": 2678.57,
-      "ema50": 2550.05,
-      "rsi": 90.7,
-      "category": "IDX Liquid",
-      "stop_loss": 2932.86,
-      "take_profit": 3434.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "AUTO",
-      "close": 3320.0,
-      "change_pct": -1.19,
-      "volume": 5194300,
-      "vol_ma20": 5173595,
-      "ema20": 3188.6,
-      "ema50": 2937.39,
-      "rsi": 78.46,
-      "category": "IDX Liquid",
-      "stop_loss": 3167.86,
-      "take_profit": 3624.29,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BBNI",
-      "close": 3820.0,
-      "change_pct": -1.29,
-      "volume": 52644400,
-      "vol_ma20": 38476515,
-      "ema20": 3775.21,
-      "ema50": 3674.85,
-      "rsi": 68.85,
-      "category": "Bluechip",
-      "stop_loss": 3693.57,
-      "take_profit": 4072.86,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "ACES",
-      "close": 354.0,
-      "change_pct": -0.56,
-      "volume": 11695700,
-      "vol_ma20": 22326845,
-      "ema20": 355.93,
-      "ema50": 351.25,
-      "rsi": 40.0,
-      "category": "IDX Liquid",
-      "stop_loss": 343.07,
-      "take_profit": 375.86,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BMRI",
-      "close": 4390.0,
-      "change_pct": -0.9,
-      "volume": 125622500,
-      "vol_ma20": 118589285,
-      "ema20": 4296.61,
-      "ema50": 4236.17,
-      "rsi": 69.35,
-      "category": "Bluechip",
-      "stop_loss": 4291.43,
-      "take_profit": 4587.14,
-      "risk_reward": "1:2"
-    },
-    {
-      "ticker": "BRIS",
-      "close": 1775.0,
-      "change_pct": 0.0,
-      "volume": 12359000,
-      "vol_ma20": 15079570,
-      "ema20": 1786.68,
-      "ema50": 1798.87,
-      "rsi": 55.17,
-      "category": "IDX Liquid",
-      "stop_loss": 1730.0,
-      "take_profit": 1865.0,
-      "risk_reward": "1:2"
-    }
-  ]
-}
+
+    with open("data.json", "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2)
+
+    print("Data screener berhasil diperbarui di data.json")
+
+if __name__ == "__main__":
+    generate_screener_data()
