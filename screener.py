@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 import yfinance as yf
 
-# Daftar 100 Emiten IDX Terpopuler
+# Daftar Emiten IDX Pilihan Swing Trader (120+ Ticker)
 TICKERS = [
     # Bluechip / Big Cap
     {"ticker": "BBCA", "category": "Bluechip"}, {"ticker": "BBRI", "category": "Bluechip"},
@@ -16,7 +16,7 @@ TICKERS = [
     {"ticker": "BYAN", "category": "Bluechip"}, {"ticker": "CPIN", "category": "Bluechip"},
     {"ticker": "GOTO", "category": "Bluechip"}, {"ticker": "KLBF", "category": "Bluechip"},
 
-    # Mining, Energy & Resources (IDX Liquid)
+    # Mining, Energy & Resources
     {"ticker": "ADRO", "category": "IDX Liquid"}, {"ticker": "PTBA", "category": "IDX Liquid"},
     {"ticker": "ITMG", "category": "IDX Liquid"}, {"ticker": "MEDC", "category": "IDX Liquid"},
     {"ticker": "ANTM", "category": "IDX Liquid"}, {"ticker": "INCO", "category": "IDX Liquid"},
@@ -25,7 +25,10 @@ TICKERS = [
     {"ticker": "NCKL", "category": "IDX Liquid"}, {"ticker": "AMMN", "category": "IDX Liquid"},
     {"ticker": "CUAN", "category": "IDX Liquid"}, {"ticker": "DOOID", "category": "IDX Liquid"},
     {"ticker": "INDY", "category": "IDX Liquid"}, {"ticker": "ELSA", "category": "IDX Liquid"},
-    {"ticker": "ENRG", "category": "IDX Liquid"},
+    {"ticker": "ENRG", "category": "IDX Liquid"}, {"ticker": "BUMI", "category": "IDX Liquid"},
+    {"ticker": "DEWA", "category": "IDX Liquid"}, {"ticker": "BRMS", "category": "IDX Liquid"},
+    {"ticker": "HUMI", "category": "IDX Liquid"}, {"ticker": "BNBR", "category": "IDX Liquid"},
+    {"ticker": "JGLE", "category": "IDX Liquid"}, {"ticker": "MKOIN", "category": "IDX Liquid"},
 
     # Banking & Financial Services
     {"ticker": "BRIS", "category": "IDX Liquid"}, {"ticker": "BBTN", "category": "IDX Liquid"},
@@ -57,16 +60,17 @@ TICKERS = [
     {"ticker": "PTPP", "category": "IDX Liquid"}, {"ticker": "WIKA", "category": "IDX Liquid"},
     {"ticker": "WEGE", "category": "IDX Liquid"}, {"ticker": "TOTL", "category": "IDX Liquid"},
 
-    # Industrial, Automotive & Logistics
+    # Industrial, Automotive & Swing Speculative
     {"ticker": "SMGR", "category": "IDX Liquid"}, {"ticker": "INTP", "category": "IDX Liquid"},
     {"ticker": "UNTR", "category": "IDX Liquid"}, {"ticker": "AUTO", "category": "IDX Liquid"},
     {"ticker": "GJTL", "category": "IDX Liquid"}, {"ticker": "SMSM", "category": "IDX Liquid"},
     {"ticker": "IMAS", "category": "IDX Liquid"}, {"ticker": "BIRD", "category": "IDX Liquid"},
     {"ticker": "ASSA", "category": "IDX Liquid"}, {"ticker": "SMDR", "category": "IDX Liquid"},
     {"ticker": "TEMAS", "category": "IDX Liquid"}, {"ticker": "TINS", "category": "IDX Liquid"},
-    {"ticker": "WOOD", "category": "IDX Liquid"}, {"ticker": "MAIN", "category": "IDX Liquid"},
-    {"ticker": "JPFA", "category": "IDX Liquid"}, {"ticker": "TAPG", "category": "IDX Liquid"},
-    {"ticker": "DSNG", "category": "IDX Liquid"}, {"ticker": "SSMS", "category": "IDX Liquid"}
+    {"ticker": "MAIN", "category": "IDX Liquid"}, {"ticker": "JPFA", "category": "IDX Liquid"},
+    {"ticker": "TAPG", "category": "IDX Liquid"}, {"ticker": "DSNG", "category": "IDX Liquid"},
+    {"ticker": "SSMS", "category": "IDX Liquid"}, {"ticker": "KREN", "category": "IDX Liquid"},
+    {"ticker": "NATO", "category": "IDX Liquid"}, {"ticker": "IRRA", "category": "IDX Liquid"}
 ]
 
 def calculate_rsi(series, period=14):
@@ -136,22 +140,13 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
 def fetch_real_data():
     symbol_map = {f"{item['ticker']}.JK": item for item in TICKERS}
     ticker_symbols = list(symbol_map.keys())
-    
-    # Masukkan ticker IHSG (^JKSE) ke dalam list pengunduhan
     all_download_tickers = ticker_symbols + ["^JKSE"]
 
-    print("⚡ Mengunduh data 100 emiten dan IHSG (^JKSE) dari Yahoo Finance...")
+    print("⚡ Mengunduh data emiten dan IHSG (^JKSE) dari Yahoo Finance...")
     download_data = yf.download(all_download_tickers, period="100d", interval="1d", group_by="ticker", progress=False)
 
-    # Fetch Data IHSG
     ihsg_data = {
-        "name": "IHSG (Composite)",
-        "open": 0,
-        "high": 0,
-        "low": 0,
-        "close": 0,
-        "prev_close": 0,
-        "change_pct": 0.0
+        "name": "IHSG (Composite)", "open": 0, "high": 0, "low": 0, "close": 0, "prev_close": 0, "change_pct": 0.0
     }
 
     try:
@@ -160,20 +155,13 @@ def fetch_real_data():
             if len(df_ihsg) >= 2:
                 latest_ihsg = df_ihsg.iloc[-1]
                 prev_ihsg = df_ihsg.iloc[-2]
-                
-                c_val = float(latest_ihsg['Close'])
-                p_val = float(prev_ihsg['Close'])
-                o_val = float(latest_ihsg['Open'])
-                h_val = float(latest_ihsg['High'])
-                l_val = float(latest_ihsg['Low'])
-
+                c_val, p_val = float(latest_ihsg['Close']), float(prev_ihsg['Close'])
                 chg = round(((c_val - p_val) / p_val) * 100, 2) if p_val > 0 else 0.0
-
                 ihsg_data = {
                     "name": "IHSG (Composite)",
-                    "open": round(o_val, 2),
-                    "high": round(h_val, 2),
-                    "low": round(l_val, 2),
+                    "open": round(float(latest_ihsg['Open']), 2),
+                    "high": round(float(latest_ihsg['High']), 2),
+                    "low": round(float(latest_ihsg['Low']), 2),
                     "close": round(c_val, 2),
                     "prev_close": round(p_val, 2),
                     "change_pct": chg
@@ -181,7 +169,6 @@ def fetch_real_data():
     except Exception as e:
         print(f"Gagal memuat IHSG: {e}")
 
-    # Fetch Data Emiten Saham
     all_stocks = []
     for symbol, stock in symbol_map.items():
         try:
@@ -190,25 +177,21 @@ def fetch_real_data():
             else:
                 continue
 
-            if len(df) < 50:
+            if len(df) < 30:
                 continue
 
             df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
             df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
             df['RSI'] = calculate_rsi(df['Close'], 14)
 
-            latest = df.iloc[-1]
-            previous = df.iloc[-2]
-
-            close = float(latest['Close'])
-            prev_close = float(previous['Close'])
+            latest, previous = df.iloc[-1], df.iloc[-2]
+            close, prev_close = float(latest['Close']), float(previous['Close'])
             
             if close <= 0 or prev_close <= 0:
                 continue
 
             change_pct = round(((close - prev_close) / prev_close) * 100, 2)
-            ema20 = float(latest['EMA20'])
-            ema50 = float(latest['EMA50'])
+            ema20, ema50 = float(latest['EMA20']), float(latest['EMA50'])
             rsi = round(float(latest['RSI']), 1) if not pd.isna(latest['RSI']) else 50.0
 
             swing_res = calculate_swing_strategy(close, ema20, ema50, rsi)
@@ -230,14 +213,13 @@ def fetch_real_data():
                 "take_profit": round(close * 1.10, 2)
             }
             all_stocks.append(item)
-
-        except Exception as e:
+        except Exception:
             continue
 
-    # Pengurutan 10 Emiten Entry Terkuat
+    # Kategori Terlemah (Bearish Terkuat) Menurut Analisa System
+    top_bearish = sorted(all_stocks, key=lambda x: (x["power_score"], x["change_pct"]))[:20]
     top_10_entry = sorted(all_stocks, key=lambda x: (x["power_score"], x["change_pct"]), reverse=True)[:10]
 
-    # Pengelompokan Data Kategori
     swing_setup = [s for s in all_stocks if s["signal"] in ["BULLISH", "STRONG_BULLISH"]]
     top_gainers = sorted(all_stocks, key=lambda x: x["change_pct"], reverse=True)[:20]
     top_movers = sorted(all_stocks, key=lambda x: abs(x["change_pct"]), reverse=True)[:20]
@@ -252,17 +234,15 @@ def fetch_real_data():
         "top_gainers": top_gainers,
         "top_movers": top_movers,
         "bluechips": bluechips,
+        "top_bearish": top_bearish,
         "all_stocks": all_stocks
     }
 
-    temp_filename = "data.json.tmp"
-    final_filename = "data.json"
-
+    temp_filename, final_filename = "data.json.tmp", "data.json"
     with open(temp_filename, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)
-
     os.replace(temp_filename, final_filename)
-    print(f"🚀 Berhasil! IHSG & {len(all_stocks)} emiten tersimpan sempurna di {final_filename}")
+    print(f"🚀 Berhasil! {len(all_stocks)} emiten tersimpan.")
 
 if __name__ == "__main__":
     fetch_real_data()
