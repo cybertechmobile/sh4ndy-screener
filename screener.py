@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 import pandas as pd
 import yfinance as yf
@@ -78,7 +79,6 @@ def calculate_rsi(series, period=14):
 def calculate_swing_strategy(close, ema20, ema50, rsi):
     score = 0
     
-    # Evaluasi EMA 20 terhadap Harga
     if close > ema20:
         ema20_status = "strong_buy" if close >= ema20 * 1.02 else "buy"
         score += 2 if ema20_status == "strong_buy" else 1
@@ -88,7 +88,6 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
     else:
         ema20_status = "neutral"
 
-    # Evaluasi Trend EMA 20 vs EMA 50
     if ema20 > ema50:
         ema50_status = "strong_buy" if close > ema50 else "buy"
         score += 2 if ema50_status == "strong_buy" else 1
@@ -98,7 +97,6 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
     else:
         ema50_status = "neutral"
 
-    # Evaluasi Momentum RSI
     if rsi >= 65:
         rsi_status = "strong_buy"
         score += 2
@@ -114,7 +112,6 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
     else:
         rsi_status = "neutral"
 
-    # Sinyal Gabungan
     if score >= 4:
         signal = "STRONG_BULLISH"
     elif score >= 1:
@@ -138,19 +135,24 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
 
 def fetch_real_data():
     all_stocks = []
-    print("Mengambil data riil dari Bursa Saham Indonesia (IDX)...")
+    symbol_map = {f"{item['ticker']}.JK": item for item in TICKERS}
+    ticker_symbols = list(symbol_map.keys())
 
-    for stock in TICKERS:
-        ticker_symbol = f"{stock['ticker']}.JK"
+    print("⚡ Mengunduh data 100 emiten sekaligus dari Yahoo Finance...")
+    
+    # Batch download untuk performa tinggi & mencegah timeout
+    download_data = yf.download(ticker_symbols, period="100d", interval="1d", group_by="ticker", progress=False)
+
+    for symbol, stock in symbol_map.items():
         try:
-            # Unduh riwayat 100 hari untuk kalkulasi indikator teknis
-            df = yf.download(ticker_symbol, period="100d", interval="1d", progress=False)
-
-            if df.empty or len(df) < 50:
-                print(f"⚠️ Data tidak cukup untuk: {stock['ticker']}")
+            if symbol in download_data and not download_data[symbol].dropna().empty:
+                df = download_data[symbol].dropna().copy()
+            else:
                 continue
 
-            # Hitung Indikator
+            if len(df) < 50:
+                continue
+
             df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
             df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
             df['RSI'] = calculate_rsi(df['Close'], 14)
@@ -158,23 +160,22 @@ def fetch_real_data():
             latest = df.iloc[-1]
             previous = df.iloc[-2]
 
-            # MURNI HARGA ASLI PASAR (Tanpa dikali/diacak)
             close = float(latest['Close'])
             prev_close = float(previous['Close'])
             
-            # Hitung Perubahan Persentase Riil
-            change_pct = round(((close - prev_close) / prev_close) * 100, 2) if prev_close > 0 else 0.0
-            
+            if close <= 0 or prev_close <= 0:
+                continue
+
+            change_pct = round(((close - prev_close) / prev_close) * 100, 2)
             ema20 = float(latest['EMA20'])
             ema50 = float(latest['EMA50'])
             rsi = round(float(latest['RSI']), 1) if not pd.isna(latest['RSI']) else 50.0
 
-            # Kalkulasi sinyal tanpa mengubah nilai 'close' asli
             swing_res = calculate_swing_strategy(close, ema20, ema50, rsi)
 
             item = {
                 "ticker": stock["ticker"],
-                "close": round(close, 2), # Harga asli
+                "close": round(close, 2),
                 "change_pct": change_pct,
                 "category": stock["category"],
                 "ema20": round(ema20, 2),
@@ -189,12 +190,11 @@ def fetch_real_data():
                 "take_profit": round(close * 1.10, 2)
             }
             all_stocks.append(item)
-            print(f"✅ {stock['ticker']}: Rp{close:,.0f} ({change_pct}%)")
 
         except Exception as e:
-            print(f"❌ Error mengunduh {stock['ticker']}: {e}")
+            continue
 
-    # Pengelompokan Tab Secara Dinamis dan Presisi
+    # Pengelompokan Data
     swing_setup = [s for s in all_stocks if s["signal"] in ["BULLISH", "STRONG_BULLISH"]]
     top_gainers = sorted(all_stocks, key=lambda x: x["change_pct"], reverse=True)[:20]
     top_movers = sorted(all_stocks, key=lambda x: abs(x["change_pct"]), reverse=True)[:20]
@@ -210,10 +210,15 @@ def fetch_real_data():
         "all_stocks": all_stocks
     }
 
-    with open("data.json", "w", encoding="utf-8") as f:
+    # Penulisan file secara aman (Atomic Write) agar file tidak terpotong
+    temp_filename = "data.json.tmp"
+    final_filename = "data.json"
+
+    with open(temp_filename, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)
 
-    print(f"\n🚀 Selesai! {len(all_stocks)} emiten berhasil diproses ke data.json")
+    os.replace(temp_filename, final_filename)
+    print(f"🚀 Berhasil! {len(all_stocks)} emiten tersimpan sempurna di {final_filename}")
 
 if __name__ == "__main__":
     fetch_real_data()
