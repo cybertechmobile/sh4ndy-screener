@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Screener Saham Swing Professional</title>
+    <title>SH4NDY's SWING SCREENER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes blink-animation {
@@ -32,7 +32,7 @@
             <div>
                 <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl sm:text-3xl font-bold text-green-400 flex items-center gap-2">
-                        📈 Screener Saham Swing
+                        📈 SH4NDY's SWING SCREENER
                     </h1>
 
                     <!-- IHSG Market Badge di Header -->
@@ -65,14 +65,14 @@
         </header>
 
         <!-- Tabel Kolom Acuan Pasar IHSG (PREV, O, L, H, C) -->
-        <section class="mb-6 bg-gray-850 border border-gray-700/80 rounded-xl p-4 shadow-lg">
+        <section id="ihsg-card" class="mb-6 bg-gray-800/60 border border-gray-700/60 rounded-xl p-4 shadow-lg transition-colors duration-500">
             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                 🏛️ Indeks Harga Saham Gabungan (IHSG)
             </h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-center text-sm border-collapse">
                     <thead>
-                        <tr class="bg-gray-800 text-gray-400 text-xs uppercase border-b border-gray-700">
+                        <tr class="bg-gray-800/80 text-gray-400 text-xs uppercase border-b border-gray-700">
                             <th class="py-2 px-4">PREV</th>
                             <th class="py-2 px-4">O (Open)</th>
                             <th class="py-2 px-4">L (Low)</th>
@@ -92,6 +92,25 @@
                 </table>
             </div>
         </section>
+
+        <!-- Navigation Tabs dengan Jumlah Emiten (Sticky & Berada di Bawah IHSG) -->
+        <div class="sticky top-0 z-50 bg-gray-900/95 backdrop-blur py-3 mb-6 border-b border-gray-800 flex flex-wrap gap-2" id="tabs-container">
+            <button id="tab-swing_setup" onclick="switchTab('swing_setup')" class="tab-btn bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 shadow-md">
+                🎯 Swing Setup <span id="count-swing_setup" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
+            </button>
+            <button id="tab-top_gainers" onclick="switchTab('top_gainers')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
+                🚀 Top Gainers <span id="count-top_gainers" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
+            </button>
+            <button id="tab-top_movers" onclick="switchTab('top_movers')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
+                🔥 Top Movers <span id="count-top_movers" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
+            </button>
+            <button id="tab-bluechips" onclick="switchTab('bluechips')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
+                💎 Bluechip <span id="count-bluechips" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
+            </button>
+            <button id="tab-all_stocks" onclick="switchTab('all_stocks')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
+                🌐 Semua Emiten <span id="count-all_stocks" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
+            </button>
+        </div>
 
         <!-- KARTU KHUSUS: Top 10 Best Entry Setup -->
         <section class="mb-8 bg-gradient-to-r from-gray-850 via-gray-800 to-gray-850 border border-green-500/30 rounded-xl p-5 shadow-2xl relative overflow-hidden">
@@ -123,25 +142,6 @@
                 </table>
             </div>
         </section>
-
-        <!-- Navigation Tabs dengan Jumlah Emiten -->
-        <div class="flex flex-wrap gap-2 mb-6" id="tabs-container">
-            <button id="tab-swing_setup" onclick="switchTab('swing_setup')" class="tab-btn bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
-                🎯 Swing Setup <span id="count-swing_setup" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
-            </button>
-            <button id="tab-top_gainers" onclick="switchTab('top_gainers')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
-                🚀 Top Gainers <span id="count-top_gainers" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
-            </button>
-            <button id="tab-top_movers" onclick="switchTab('top_movers')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
-                🔥 Top Movers <span id="count-top_movers" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
-            </button>
-            <button id="tab-bluechips" onclick="switchTab('bluechips')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
-                💎 Bluechip <span id="count-bluechips" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
-            </button>
-            <button id="tab-all_stocks" onclick="switchTab('all_stocks')" class="tab-btn bg-gray-800 text-gray-300 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2">
-                🌐 Semua Emiten <span id="count-all_stocks" class="text-xs bg-black/30 px-2 py-0.5 rounded-full">0</span>
-            </button>
-        </div>
 
         <!-- Alert Notification -->
         <div id="search-alert" class="hidden mb-4 p-3 bg-yellow-900/40 border border-yellow-600/50 text-yellow-300 text-sm rounded-lg flex items-center justify-between">
@@ -196,9 +196,21 @@
 
         // Render Data IHSG di Header dan Kolom
         function renderIHSG(ihsg) {
-            if (!ihsg || !ihsg.close) return;
+            if (!ihsg || ihsg.close === undefined) return;
 
-            const isPositive = (ihsg.change_pct || 0) >= 0;
+            const chgPct = ihsg.change_pct || 0;
+            const ihsgCard = document.getElementById('ihsg-card');
+
+            // Warna kartu IHSG (Soft/Lembut)
+            if (chgPct > 0) {
+                ihsgCard.className = "mb-6 bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-4 shadow-lg transition-colors duration-500";
+            } else if (chgPct < 0) {
+                ihsgCard.className = "mb-6 bg-rose-950/40 border border-rose-500/40 rounded-xl p-4 shadow-lg transition-colors duration-500";
+            } else {
+                ihsgCard.className = "mb-6 bg-gray-800/60 border border-gray-700/60 rounded-xl p-4 shadow-lg transition-colors duration-500";
+            }
+
+            const isPositive = chgPct >= 0;
             const changeClass = isPositive ? 'bg-green-500/20 text-green-400 border-green-500/40' : 'bg-red-500/20 text-red-400 border-red-500/40';
             const closeColorClass = isPositive ? 'text-green-400' : 'text-red-400';
             const changeSign = isPositive ? '+' : '';
@@ -265,13 +277,13 @@
         function switchTab(tabKey) {
             currentTab = tabKey;
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('bg-green-600', 'text-white');
+                btn.classList.remove('bg-green-600', 'text-white', 'shadow-md');
                 btn.classList.add('bg-gray-800', 'text-gray-300');
             });
             const activeBtn = document.getElementById('tab-' + tabKey);
             if(activeBtn) {
                 activeBtn.classList.remove('bg-gray-800', 'text-gray-300');
-                activeBtn.classList.add('bg-green-600', 'text-white');
+                activeBtn.classList.add('bg-green-600', 'text-white', 'shadow-md');
             }
             renderTable(globalData[tabKey] || []);
         }
@@ -444,7 +456,13 @@
             setTimeout(() => location.reload(), 300);
         }
 
+        // Pemuatan data pertama kali
         loadData();
+
+        // Auto-Polling: Cek dan perbarui data tanpa reload setiap 30 detik
+        setInterval(() => {
+            loadData();
+        }, 30000);
     </script>
 </body>
 </html>
