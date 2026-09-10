@@ -139,8 +139,6 @@ def fetch_real_data():
     ticker_symbols = list(symbol_map.keys())
 
     print("⚡ Mengunduh data 100 emiten sekaligus dari Yahoo Finance...")
-    
-    # Batch download untuk performa tinggi & mencegah timeout
     download_data = yf.download(ticker_symbols, period="100d", interval="1d", group_by="ticker", progress=False)
 
     for symbol, stock in symbol_map.items():
@@ -194,7 +192,10 @@ def fetch_real_data():
         except Exception as e:
             continue
 
-    # Pengelompokan Data
+    # Pengurutan 10 Emiten Entry Terkuat dari seluruh kategori (By Power Score -> Change Pct)
+    top_10_entry = sorted(all_stocks, key=lambda x: (x["power_score"], x["change_pct"]), reverse=True)[:10]
+
+    # Pengelompokan Data Kategori
     swing_setup = [s for s in all_stocks if s["signal"] in ["BULLISH", "STRONG_BULLISH"]]
     top_gainers = sorted(all_stocks, key=lambda x: x["change_pct"], reverse=True)[:20]
     top_movers = sorted(all_stocks, key=lambda x: abs(x["change_pct"]), reverse=True)[:20]
@@ -203,6 +204,7 @@ def fetch_real_data():
     output = {
         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S WIB"),
         "total_scanned": len(all_stocks),
+        "top_10_entry": top_10_entry,
         "swing_setup": swing_setup,
         "top_gainers": top_gainers,
         "top_movers": top_movers,
@@ -210,7 +212,6 @@ def fetch_real_data():
         "all_stocks": all_stocks
     }
 
-    # Penulisan file secara aman (Atomic Write) agar file tidak terpotong
     temp_filename = "data.json.tmp"
     final_filename = "data.json"
 
