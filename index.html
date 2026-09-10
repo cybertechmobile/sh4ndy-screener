@@ -4,8 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Screener Saham Swing Trading IDX</title>
+
+    <!-- Web App Manifest & Android PWA Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111827">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IDX Swing">
+
+    <!-- Tailwind CSS & Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
     <style>
         .custom-scrollbar::-webkit-scrollbar {
             height: 6px;
@@ -20,7 +31,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col">
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col select-none">
 
     <!-- Sticky Header Utama -->
     <header id="mainHeader" class="sticky top-0 z-40 bg-gray-900 border-b border-gray-800 shadow-lg backdrop-blur-md bg-opacity-90 transition-all duration-300">
