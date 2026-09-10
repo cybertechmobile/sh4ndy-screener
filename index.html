@@ -28,17 +28,26 @@
     <div class="max-w-7xl mx-auto">
         
         <!-- Header -->
-        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-800">
+        <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-800">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-bold text-green-400 flex items-center gap-2">
-                    📈 Screener Saham Swing
-                </h1>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-green-400 flex items-center gap-2">
+                        📈 Screener Saham Swing
+                    </h1>
+
+                    <!-- IHSG Market Badge di Header -->
+                    <div class="flex items-center gap-2 bg-gray-800 border border-gray-700 px-3 py-1 rounded-lg text-sm">
+                        <span class="text-gray-400 font-semibold">IHSG:</span>
+                        <span id="ihsg-header-open" class="font-bold text-gray-200">0.00</span>
+                        <span id="ihsg-header-pct" class="font-bold px-1.5 py-0.5 rounded text-xs bg-gray-700 text-gray-300">0.00%</span>
+                    </div>
+                </div>
                 <p class="text-gray-400 text-xs sm:text-sm mt-1" id="last-updated">Status: Memuat data...</p>
             </div>
 
             <!-- Search & Reload -->
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <div class="relative flex-1 md:w-72">
+            <div class="flex items-center gap-3 w-full lg:w-auto">
+                <div class="relative flex-1 lg:w-72">
                     <input 
                         type="text" 
                         id="search-input" 
@@ -54,6 +63,35 @@
                 </button>
             </div>
         </header>
+
+        <!-- Tabel Kolom Acuan Pasar IHSG (PREV, O, L, H, C) -->
+        <section class="mb-6 bg-gray-850 border border-gray-700/80 rounded-xl p-4 shadow-lg">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                🏛️ Indeks Harga Saham Gabungan (IHSG)
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-center text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-gray-800 text-gray-400 text-xs uppercase border-b border-gray-700">
+                            <th class="py-2 px-4">PREV</th>
+                            <th class="py-2 px-4">O (Open)</th>
+                            <th class="py-2 px-4">L (Low)</th>
+                            <th class="py-2 px-4">H (High)</th>
+                            <th class="py-2 px-4">C (Close)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700/50">
+                        <tr class="font-semibold text-gray-200">
+                            <td class="py-3 px-4 text-gray-400" id="ihsg-col-prev">0.00</td>
+                            <td class="py-3 px-4 text-blue-400" id="ihsg-col-open">0.00</td>
+                            <td class="py-3 px-4 text-red-400" id="ihsg-col-low">0.00</td>
+                            <td class="py-3 px-4 text-green-400" id="ihsg-col-high">0.00</td>
+                            <td class="py-3 px-4 font-bold" id="ihsg-col-close">0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <!-- KARTU KHUSUS: Top 10 Best Entry Setup -->
         <section class="mb-8 bg-gradient-to-r from-gray-850 via-gray-800 to-gray-850 border border-green-500/30 rounded-xl p-5 shadow-2xl relative overflow-hidden">
@@ -146,6 +184,7 @@
                 globalData = await response.json();
                 document.getElementById('last-updated').innerText = 'Terakhir Diperbarui: ' + (globalData.last_updated || 'N/A');
                 
+                renderIHSG(globalData.ihsg || {});
                 updateTabCounts();
                 renderTop10Entry(globalData.top_10_entry || []);
                 renderTable(globalData[currentTab] || []);
@@ -155,7 +194,32 @@
             }
         }
 
-        // Update Angka Jumlah Emiten pada Setiap Tab Kategori
+        // Render Data IHSG di Header dan Kolom
+        function renderIHSG(ihsg) {
+            if (!ihsg || !ihsg.close) return;
+
+            const isPositive = (ihsg.change_pct || 0) >= 0;
+            const changeClass = isPositive ? 'bg-green-500/20 text-green-400 border-green-500/40' : 'bg-red-500/20 text-red-400 border-red-500/40';
+            const closeColorClass = isPositive ? 'text-green-400' : 'text-red-400';
+            const changeSign = isPositive ? '+' : '';
+
+            // 1. Header IHSG (Open & Change %)
+            document.getElementById('ihsg-header-open').innerText = ihsg.open ? ihsg.open.toLocaleString('id-ID') : '0.00';
+            const headerPct = document.getElementById('ihsg-header-pct');
+            headerPct.innerText = `${changeSign}${ihsg.change_pct}%`;
+            headerPct.className = `font-bold px-1.5 py-0.5 rounded text-xs border ${changeClass}`;
+
+            // 2. Kolom Tabel IHSG (PREV, O, L, H, C)
+            document.getElementById('ihsg-col-prev').innerText = ihsg.prev_close ? ihsg.prev_close.toLocaleString('id-ID') : '-';
+            document.getElementById('ihsg-col-open').innerText = ihsg.open ? ihsg.open.toLocaleString('id-ID') : '-';
+            document.getElementById('ihsg-col-low').innerText = ihsg.low ? ihsg.low.toLocaleString('id-ID') : '-';
+            document.getElementById('ihsg-col-high').innerText = ihsg.high ? ihsg.high.toLocaleString('id-ID') : '-';
+            
+            const colClose = document.getElementById('ihsg-col-close');
+            colClose.innerText = ihsg.close ? ihsg.close.toLocaleString('id-ID') : '-';
+            colClose.className = `py-3 px-4 font-bold ${closeColorClass}`;
+        }
+
         function updateTabCounts() {
             const categories = ['swing_setup', 'top_gainers', 'top_movers', 'bluechips', 'all_stocks'];
             categories.forEach(cat => {
@@ -166,7 +230,6 @@
             });
         }
 
-        // Render Kartu Top 10 Entry Signal Terkuat
         function renderTop10Entry(items) {
             const container = document.getElementById('top-10-data');
             container.innerHTML = '';
