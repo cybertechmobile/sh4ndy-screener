@@ -134,13 +134,55 @@ def calculate_swing_strategy(close, ema20, ema50, rsi):
     }
 
 def fetch_real_data():
-    all_stocks = []
     symbol_map = {f"{item['ticker']}.JK": item for item in TICKERS}
     ticker_symbols = list(symbol_map.keys())
+    
+    # Masukkan ticker IHSG (^JKSE) ke dalam list pengunduhan
+    all_download_tickers = ticker_symbols + ["^JKSE"]
 
-    print("⚡ Mengunduh data 100 emiten sekaligus dari Yahoo Finance...")
-    download_data = yf.download(ticker_symbols, period="100d", interval="1d", group_by="ticker", progress=False)
+    print("⚡ Mengunduh data 100 emiten dan IHSG (^JKSE) dari Yahoo Finance...")
+    download_data = yf.download(all_download_tickers, period="100d", interval="1d", group_by="ticker", progress=False)
 
+    # Fetch Data IHSG
+    ihsg_data = {
+        "name": "IHSG (Composite)",
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "prev_close": 0,
+        "change_pct": 0.0
+    }
+
+    try:
+        if "^JKSE" in download_data and not download_data["^JKSE"].dropna().empty:
+            df_ihsg = download_data["^JKSE"].dropna().copy()
+            if len(df_ihsg) >= 2:
+                latest_ihsg = df_ihsg.iloc[-1]
+                prev_ihsg = df_ihsg.iloc[-2]
+                
+                c_val = float(latest_ihsg['Close'])
+                p_val = float(prev_ihsg['Close'])
+                o_val = float(latest_ihsg['Open'])
+                h_val = float(latest_ihsg['High'])
+                l_val = float(latest_ihsg['Low'])
+
+                chg = round(((c_val - p_val) / p_val) * 100, 2) if p_val > 0 else 0.0
+
+                ihsg_data = {
+                    "name": "IHSG (Composite)",
+                    "open": round(o_val, 2),
+                    "high": round(h_val, 2),
+                    "low": round(l_val, 2),
+                    "close": round(c_val, 2),
+                    "prev_close": round(p_val, 2),
+                    "change_pct": chg
+                }
+    except Exception as e:
+        print(f"Gagal memuat IHSG: {e}")
+
+    # Fetch Data Emiten Saham
+    all_stocks = []
     for symbol, stock in symbol_map.items():
         try:
             if symbol in download_data and not download_data[symbol].dropna().empty:
@@ -192,7 +234,7 @@ def fetch_real_data():
         except Exception as e:
             continue
 
-    # Pengurutan 10 Emiten Entry Terkuat dari seluruh kategori (By Power Score -> Change Pct)
+    # Pengurutan 10 Emiten Entry Terkuat
     top_10_entry = sorted(all_stocks, key=lambda x: (x["power_score"], x["change_pct"]), reverse=True)[:10]
 
     # Pengelompokan Data Kategori
@@ -204,6 +246,7 @@ def fetch_real_data():
     output = {
         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S WIB"),
         "total_scanned": len(all_stocks),
+        "ihsg": ihsg_data,
         "top_10_entry": top_10_entry,
         "swing_setup": swing_setup,
         "top_gainers": top_gainers,
@@ -219,7 +262,7 @@ def fetch_real_data():
         json.dump(output, f, indent=2)
 
     os.replace(temp_filename, final_filename)
-    print(f"🚀 Berhasil! {len(all_stocks)} emiten tersimpan sempurna di {final_filename}")
+    print(f"🚀 Berhasil! IHSG & {len(all_stocks)} emiten tersimpan sempurna di {final_filename}")
 
 if __name__ == "__main__":
     fetch_real_data()
