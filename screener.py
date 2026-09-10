@@ -1,248 +1,324 @@
 import json
 import os
-from datetime import datetime
 import pandas as pd
 import yfinance as yf
 
-# Daftar Emiten IDX Pilihan Swing Trader (120+ Ticker)
+# Daftar 180+ Emiten Terlikuid & Populer di BEI (IDX)
 TICKERS = [
-    # Bluechip / Big Cap
-    {"ticker": "BBCA", "category": "Bluechip"}, {"ticker": "BBRI", "category": "Bluechip"},
-    {"ticker": "BMRI", "category": "Bluechip"}, {"ticker": "BBNI", "category": "Bluechip"},
-    {"ticker": "TLKM", "category": "Bluechip"}, {"ticker": "ASII", "category": "Bluechip"},
-    {"ticker": "UNVR", "category": "Bluechip"}, {"ticker": "ICBP", "category": "Bluechip"},
-    {"ticker": "INDF", "category": "Bluechip"}, {"ticker": "AMRT", "category": "Bluechip"},
-    {"ticker": "TPIA", "category": "Bluechip"}, {"ticker": "BREN", "category": "Bluechip"},
-    {"ticker": "BYAN", "category": "Bluechip"}, {"ticker": "CPIN", "category": "Bluechip"},
-    {"ticker": "GOTO", "category": "Bluechip"}, {"ticker": "KLBF", "category": "Bluechip"},
-
-    # Mining, Energy & Resources
-    {"ticker": "ADRO", "category": "IDX Liquid"}, {"ticker": "PTBA", "category": "IDX Liquid"},
-    {"ticker": "ITMG", "category": "IDX Liquid"}, {"ticker": "MEDC", "category": "IDX Liquid"},
-    {"ticker": "ANTM", "category": "IDX Liquid"}, {"ticker": "INCO", "category": "IDX Liquid"},
-    {"ticker": "PGAS", "category": "IDX Liquid"}, {"ticker": "AKRA", "category": "IDX Liquid"},
-    {"ticker": "HRUM", "category": "IDX Liquid"}, {"ticker": "MBMA", "category": "IDX Liquid"},
-    {"ticker": "NCKL", "category": "IDX Liquid"}, {"ticker": "AMMN", "category": "IDX Liquid"},
-    {"ticker": "CUAN", "category": "IDX Liquid"}, {"ticker": "DOOID", "category": "IDX Liquid"},
-    {"ticker": "INDY", "category": "IDX Liquid"}, {"ticker": "ELSA", "category": "IDX Liquid"},
-    {"ticker": "ENRG", "category": "IDX Liquid"}, {"ticker": "BUMI", "category": "IDX Liquid"},
-    {"ticker": "DEWA", "category": "IDX Liquid"}, {"ticker": "BRMS", "category": "IDX Liquid"},
-    {"ticker": "HUMI", "category": "IDX Liquid"}, {"ticker": "BNBR", "category": "IDX Liquid"},
-    {"ticker": "JGLE", "category": "IDX Liquid"}, {"ticker": "MKOIN", "category": "IDX Liquid"},
-
-    # Banking & Financial Services
-    {"ticker": "BRIS", "category": "IDX Liquid"}, {"ticker": "BBTN", "category": "IDX Liquid"},
-    {"ticker": "BDMN", "category": "IDX Liquid"}, {"ticker": "BNGA", "category": "IDX Liquid"},
-    {"ticker": "NISP", "category": "IDX Liquid"}, {"ticker": "PNBN", "category": "IDX Liquid"},
-    {"ticker": "ARTO", "category": "IDX Liquid"}, {"ticker": "BBYB", "category": "IDX Liquid"},
-    {"ticker": "BANK", "category": "IDX Liquid"}, {"ticker": "AGRO", "category": "IDX Liquid"},
-
-    # Telecom, Tech & Infrastructure
-    {"ticker": "EXCL", "category": "IDX Liquid"}, {"ticker": "ISAT", "category": "IDX Liquid"},
-    {"ticker": "TOWR", "category": "IDX Liquid"}, {"ticker": "TBIG", "category": "IDX Liquid"},
-    {"ticker": "MTEL", "category": "IDX Liquid"}, {"ticker": "EMTK", "category": "IDX Liquid"},
-    {"ticker": "SCMA", "category": "IDX Liquid"}, {"ticker": "BUKA", "category": "IDX Liquid"},
-    {"ticker": "WIFI", "category": "IDX Liquid"}, {"ticker": "CENT", "category": "IDX Liquid"},
-
-    # Consumer, Retail & Healthcare
-    {"ticker": "MYOR", "category": "IDX Liquid"}, {"ticker": "CMRY", "category": "IDX Liquid"},
-    {"ticker": "ACES", "category": "IDX Liquid"}, {"ticker": "MAPI", "category": "IDX Liquid"},
-    {"ticker": "MAPA", "category": "IDX Liquid"}, {"ticker": "RALS", "category": "IDX Liquid"},
-    {"ticker": "LPPF", "category": "IDX Liquid"}, {"ticker": "ERAA", "category": "IDX Liquid"},
-    {"ticker": "MIKA", "category": "IDX Liquid"}, {"ticker": "HEAL", "category": "IDX Liquid"},
-    {"ticker": "SILO", "category": "IDX Liquid"}, {"ticker": "SIDO", "category": "IDX Liquid"},
-    {"ticker": "TSPC", "category": "IDX Liquid"}, {"ticker": "KAEF", "category": "IDX Liquid"},
-
-    # Property, Real Estate & Construction
-    {"ticker": "BSDE", "category": "IDX Liquid"}, {"ticker": "CTRA", "category": "IDX Liquid"},
-    {"ticker": "PWON", "category": "IDX Liquid"}, {"ticker": "SMRA", "category": "IDX Liquid"},
-    {"ticker": "ASRI", "category": "IDX Liquid"}, {"ticker": "ADHI", "category": "IDX Liquid"},
-    {"ticker": "PTPP", "category": "IDX Liquid"}, {"ticker": "WIKA", "category": "IDX Liquid"},
-    {"ticker": "WEGE", "category": "IDX Liquid"}, {"ticker": "TOTL", "category": "IDX Liquid"},
-
-    # Industrial, Automotive & Swing Speculative
-    {"ticker": "SMGR", "category": "IDX Liquid"}, {"ticker": "INTP", "category": "IDX Liquid"},
-    {"ticker": "UNTR", "category": "IDX Liquid"}, {"ticker": "AUTO", "category": "IDX Liquid"},
-    {"ticker": "GJTL", "category": "IDX Liquid"}, {"ticker": "SMSM", "category": "IDX Liquid"},
-    {"ticker": "IMAS", "category": "IDX Liquid"}, {"ticker": "BIRD", "category": "IDX Liquid"},
-    {"ticker": "ASSA", "category": "IDX Liquid"}, {"ticker": "SMDR", "category": "IDX Liquid"},
-    {"ticker": "TEMAS", "category": "IDX Liquid"}, {"ticker": "TINS", "category": "IDX Liquid"},
-    {"ticker": "MAIN", "category": "IDX Liquid"}, {"ticker": "JPFA", "category": "IDX Liquid"},
-    {"ticker": "TAPG", "category": "IDX Liquid"}, {"ticker": "DSNG", "category": "IDX Liquid"},
-    {"ticker": "SSMS", "category": "IDX Liquid"}, {"ticker": "KREN", "category": "IDX Liquid"},
-    {"ticker": "NATO", "category": "IDX Liquid"}, {"ticker": "IRRA", "category": "IDX Liquid"}
+    # Perbankan & Keuangan
+    "BBCA.JK",
+    "BBRI.JK",
+    "BMRI.JK",
+    "BBNI.JK",
+    "BBTN.JK",
+    "BRIS.JK",
+    "ARTO.JK",
+    "BDMN.JK",
+    "BNGA.JK",
+    "PNBN.JK",
+    "MEGA.JK",
+    "AGRO.JK",
+    "BJBR.JK",
+    "BJTM.JK",
+    "BFIN.JK",
+    "PNLF.JK",
+    # Energi, Batubara & Minyak
+    "ADRO.JK",
+    "PTBA.JK",
+    "ITMG.JK",
+    "HRUM.JK",
+    "INDY.JK",
+    "MEDC.JK",
+    "PGAS.JK",
+    "AKRA.JK",
+    "ELSA.JK",
+    "DOID.JK",
+    "MBAP.JK",
+    "TOBA.JK",
+    "BUMI.JK",
+    "ENRG.JK",
+    "KKGI.JK",
+    "ABMM.JK",
+    "GEMS.JK",
+    "CUAN.JK",
+    "BREN.JK",
+    # Mineral, Logam & Logam Mulia
+    "ANTM.JK",
+    "INCO.JK",
+    "TINS.JK",
+    "MDKA.JK",
+    "MBMA.JK",
+    "NCKL.JK",
+    "AMMN.JK",
+    "PSAB.JK",
+    "DKFT.JK",
+    "CITA.JK",
+    # Telekomunikasi & Teknologi
+    "TLKM.JK",
+    "ISAT.JK",
+    "EXCL.JK",
+    "GOTO.JK",
+    "BUKA.JK",
+    "MTDL.JK",
+    "EMTK.JK",
+    "SCMA.JK",
+    "WIFI.JK",
+    "BELI.JK",
+    # Otomotif, Infrastruktur & Menara
+    "ASII.JK",
+    "AUTO.JK",
+    "SMSM.JK",
+    "GJTL.JK",
+    "IMAS.JK",
+    "TOWR.JK",
+    "TBIG.JK",
+    "CENT.JK",
+    "JSMR.JK",
+    "WIKA.JK",
+    "PTPP.JK",
+    "ADHI.JK",
+    "WEGE.JK",
+    "TOTL.JK",
+    # Konsumsi, Makanan, Minuman & Farmasi
+    "UNVR.JK",
+    "INDF.JK",
+    "ICBP.JK",
+    "MYOR.JK",
+    "KLBF.JK",
+    "SIDO.JK",
+    "CPIN.JK",
+    "JPFA.JK",
+    "MAIN.JK",
+    "AMRT.JK",
+    "MIDI.JK",
+    "CMRY.JK",
+    "GOOD.JK",
+    "ROTI.JK",
+    "STTP.JK",
+    "ULTJ.JK",
+    "TSPC.JK",
+    "KAEF.JK",
+    "INAF.JK",
+    "MIKA.JK",
+    "HEAL.JK",
+    "SILO.JK",
+    "SAME.JK",
+    # Ritel, Properti & Konstruksi
+    "ACES.JK",
+    "MAPI.JK",
+    "MAPA.JK",
+    "LPPF.JK",
+    "RALS.JK",
+    "BSDE.JK",
+    "CTRA.JK",
+    "PWON.JK",
+    "SMRA.JK",
+    "ASRI.JK",
+    "APLN.JK",
+    "DILD.JK",
+    "MDLN.JK",
+    "MKPI.JK",
+    # Semen, Kimia & Industri
+    "SMGR.JK",
+    "INTP.JK",
+    "SMBR.JK",
+    "TPIA.JK",
+    "BRPT.JK",
+    "ESSA.JK",
+    "AVIA.JK",
+    "APEX.JK",
+    "INKP.JK",
+    "TKIM.JK",
+    "SPMA.JK",
+    # Perkebunan & CPO
+    "AALI.JK",
+    "LSIP.JK",
+    "DSNG.JK",
+    "TAPG.JK",
+    "SSMS.JK",
+    "BWPT.JK",
+    "SGRO.JK",
+    # Transportasi, Logistik & Alat Berat
+    "UNTR.JK",
+    "HEXA.JK",
+    "BIRD.JK",
+    "ASSA.JK",
+    "SMDR.JK",
+    "TMAS.JK",
+    "IPCC.JK",
+    "GIAA.JK",
+    # Media, Hiburan & Lainnya
+    "MNCN.JK",
+    "BMTR.JK",
+    "FILM.JK",
+    "VONE.JK",
+    "ACES.JK",
+    "CLEO.JK",
 ]
+
 
 def calculate_rsi(series, period=14):
     delta = series.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    rs = gain / loss
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.rolling(window=period, min_periods=period).mean()
+    avg_loss = loss.rolling(window=period, min_periods=period).mean()
+
+    for i in range(period, len(series)):
+        avg_gain.iloc[i] = (avg_gain.iloc[i - 1] * 13 + gain.iloc[i]) / 14
+        avg_loss.iloc[i] = (avg_loss.iloc[i - 1] * 13 + loss.iloc[i]) / 14
+
+    rs = avg_gain / avg_loss
     return 100 - (100 / (1 + rs))
 
-def calculate_swing_strategy(close, ema20, ema50, rsi):
-    score = 0
-    
-    if close > ema20:
-        ema20_status = "strong_buy" if close >= ema20 * 1.02 else "buy"
-        score += 2 if ema20_status == "strong_buy" else 1
-    elif close < ema20:
-        ema20_status = "strong_sell" if close <= ema20 * 0.98 else "sell"
-        score -= 2 if ema20_status == "strong_sell" else 1
-    else:
-        ema20_status = "neutral"
 
-    if ema20 > ema50:
-        ema50_status = "strong_buy" if close > ema50 else "buy"
-        score += 2 if ema50_status == "strong_buy" else 1
-    elif ema20 < ema50:
-        ema50_status = "strong_sell" if close < ema50 else "sell"
-        score -= 2 if ema50_status == "strong_sell" else 1
-    else:
-        ema50_status = "neutral"
+def get_ihsg_data():
+    try:
+        ihsg = yf.Ticker("^JKSE")
+        hist = ihsg.history(period="5d")
+        if len(hist) >= 2:
+            latest = hist.iloc[-1]
+            prev = hist.iloc[-2]
+            open_p = float(latest["Open"])
+            high_p = float(latest["High"])
+            low_p = float(latest["Low"])
+            close_p = float(latest["Close"])
+            prev_p = float(prev["Close"])
+            change_p = float(((close_p - prev_p) / prev_p) * 100)
 
-    if rsi >= 65:
-        rsi_status = "strong_buy"
-        score += 2
-    elif 50 <= rsi < 65:
-        rsi_status = "buy"
-        score += 1
-    elif 30 <= rsi <= 40:
-        rsi_status = "sell"
-        score -= 1
-    elif rsi < 30:
-        rsi_status = "strong_sell"
-        score -= 2
-    else:
-        rsi_status = "neutral"
-
-    if score >= 4:
-        signal = "STRONG_BULLISH"
-    elif score >= 1:
-        signal = "BULLISH"
-    elif score <= -4:
-        signal = "STRONG_BEARISH"
-    elif score <= -1:
-        signal = "BEARISH"
-    else:
-        signal = "NEUTRAL"
-
-    power_score = min(10, max(1, round(((score + 5) / 10) * 10)))
+            return {
+                "open": round(open_p, 2),
+                "high": round(high_p, 2),
+                "low": round(low_p, 2),
+                "close": round(close_p, 2),
+                "prev": round(prev_p, 2),
+                "change": round(change_p, 2),
+            }
+    except Exception as e:
+        print(f"Error fetching IHSG: {e}")
 
     return {
-        "ema20_status": ema20_status,
-        "ema50_status": ema50_status,
-        "rsi_status": rsi_status,
-        "signal": signal,
-        "power_score": power_score
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "close": 0,
+        "prev": 0,
+        "change": 0,
     }
 
-def fetch_real_data():
-    symbol_map = {f"{item['ticker']}.JK": item for item in TICKERS}
-    ticker_symbols = list(symbol_map.keys())
-    all_download_tickers = ticker_symbols + ["^JKSE"]
 
-    print("⚡ Mengunduh data emiten dan IHSG (^JKSE) dari Yahoo Finance...")
-    download_data = yf.download(all_download_tickers, period="100d", interval="1d", group_by="ticker", progress=False)
-
-    ihsg_data = {
-        "name": "IHSG (Composite)", "open": 0, "high": 0, "low": 0, "close": 0, "prev_close": 0, "change_pct": 0.0
-    }
-
+def analyze_stock(ticker):
     try:
-        if "^JKSE" in download_data and not download_data["^JKSE"].dropna().empty:
-            df_ihsg = download_data["^JKSE"].dropna().copy()
-            if len(df_ihsg) >= 2:
-                latest_ihsg = df_ihsg.iloc[-1]
-                prev_ihsg = df_ihsg.iloc[-2]
-                c_val, p_val = float(latest_ihsg['Close']), float(prev_ihsg['Close'])
-                chg = round(((c_val - p_val) / p_val) * 100, 2) if p_val > 0 else 0.0
-                ihsg_data = {
-                    "name": "IHSG (Composite)",
-                    "open": round(float(latest_ihsg['Open']), 2),
-                    "high": round(float(latest_ihsg['High']), 2),
-                    "low": round(float(latest_ihsg['Low']), 2),
-                    "close": round(c_val, 2),
-                    "prev_close": round(p_val, 2),
-                    "change_pct": chg
-                }
+        stock = yf.Ticker(ticker)
+        df = stock.history(period="6mo")
+        if len(df) < 50:
+            return None
+
+        df["EMA20"] = df["Close"].ewm(span=20, adjust=False).mean()
+        df["EMA50"] = df["Close"].ewm(span=50, adjust=False).mean()
+        df["RSI"] = calculate_rsi(df["Close"], 14)
+
+        latest = df.iloc[-1]
+        prev = df.iloc[-2]
+
+        close = float(latest["Close"])
+        prev_close = float(prev["Close"])
+        change_pct = float(((close - prev_close) / prev_close) * 100)
+
+        ema20 = float(latest["EMA20"])
+        ema50 = float(latest["EMA50"])
+        rsi = float(latest["RSI"])
+
+        # Perhitungan Signal Power Score (Skala 1 - 10)
+        power_score = 5
+
+        # Trend EMA
+        if close > ema20:
+            power_score += 1
+        else:
+            power_score -= 1
+
+        if close > ema50:
+            power_score += 1
+        else:
+            power_score -= 1
+
+        if ema20 > ema50:
+            power_score += 1
+        else:
+            power_score -= 1
+
+        # Kondisi RSI
+        if 40 <= rsi <= 65:
+            power_score += 1
+        elif rsi > 70:
+            power_score -= 1
+        elif rsi < 30:
+            power_score += 1
+
+        # Pembatasan Skala 1 - 10
+        power_score = max(1, min(10, power_score))
+
+        # Pengelompokan Kategori
+        category = "Netral"
+        if power_score >= 8:
+            category = "Strong Bullish"
+        elif power_score >= 6:
+            category = "Bullish"
+        elif power_score <= 3:
+            category = "Strong Bearish"
+        elif power_score <= 4:
+            category = "Bearish"
+
+        # Kalkulasi Stop Loss & Take Profit (TP1 +5%, TP2 +10%)
+        stop_loss = round(min(ema20, close * 0.96), 0)
+        tp1 = round(close * 1.05, 0)
+        tp2 = round(close * 1.10, 0)
+
+        clean_symbol = ticker.replace(".JK", "")
+
+        return {
+            "symbol": clean_symbol,
+            "close": round(close, 0),
+            "change": round(change_pct, 2),
+            "ema20": round(ema20, 0),
+            "ema50": round(ema50, 0),
+            "rsi": round(rsi, 2),
+            "power_score": power_score,
+            "category": category,
+            "stop_loss": stop_loss,
+            "tp1": tp1,
+            "tp2": tp2,
+        }
     except Exception as e:
-        print(f"Gagal memuat IHSG: {e}")
+        print(f"Error analyzing {ticker}: {e}")
+        return None
 
-    all_stocks = []
-    for symbol, stock in symbol_map.items():
-        try:
-            if symbol in download_data and not download_data[symbol].dropna().empty:
-                df = download_data[symbol].dropna().copy()
-            else:
-                continue
 
-            if len(df) < 30:
-                continue
+def main():
+    print("Memulai pemindaian saham...")
+    stocks_data = []
 
-            df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
-            df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
-            df['RSI'] = calculate_rsi(df['Close'], 14)
+    for idx, ticker in enumerate(TICKERS):
+        print(f"[{idx+1}/{len(TICKERS)}] Analyzing {ticker}...")
+        data = analyze_stock(ticker)
+        if data:
+            stocks_data.append(data)
 
-            latest, previous = df.iloc[-1], df.iloc[-2]
-            close, prev_close = float(latest['Close']), float(previous['Close'])
-            
-            if close <= 0 or prev_close <= 0:
-                continue
+    # Sort berdasarkan Power Score tertinggi (10 ke 1)
+    stocks_data.sort(
+        key=lambda x: (x["power_score"], x["change"]), reverse=True
+    )
 
-            change_pct = round(((close - prev_close) / prev_close) * 100, 2)
-            ema20, ema50 = float(latest['EMA20']), float(latest['EMA50'])
-            rsi = round(float(latest['RSI']), 1) if not pd.isna(latest['RSI']) else 50.0
+    ihsg_data = get_ihsg_data()
 
-            swing_res = calculate_swing_strategy(close, ema20, ema50, rsi)
+    output_data = {"ihsg": ihsg_data, "stocks": stocks_data}
 
-            item = {
-                "ticker": stock["ticker"],
-                "close": round(close, 2),
-                "change_pct": change_pct,
-                "category": stock["category"],
-                "ema20": round(ema20, 2),
-                "ema20_status": swing_res["ema20_status"],
-                "ema50": round(ema50, 2),
-                "ema50_status": swing_res["ema50_status"],
-                "rsi": rsi,
-                "rsi_status": swing_res["rsi_status"],
-                "signal": swing_res["signal"],
-                "power_score": swing_res["power_score"],
-                "stop_loss": round(close * 0.95, 2),
-                "take_profit": round(close * 1.10, 2)
-            }
-            all_stocks.append(item)
-        except Exception:
-            continue
+    with open("data.json", "w") as f:
+        json.dump(output_data, f, indent=2)
 
-    # Kategori Terlemah (Bearish Terkuat) Menurut Analisa System
-    top_bearish = sorted(all_stocks, key=lambda x: (x["power_score"], x["change_pct"]))[:20]
-    top_10_entry = sorted(all_stocks, key=lambda x: (x["power_score"], x["change_pct"]), reverse=True)[:10]
+    print("Selesai! Data berhasil disimpan ke data.json")
 
-    swing_setup = [s for s in all_stocks if s["signal"] in ["BULLISH", "STRONG_BULLISH"]]
-    top_gainers = sorted(all_stocks, key=lambda x: x["change_pct"], reverse=True)[:20]
-    top_movers = sorted(all_stocks, key=lambda x: abs(x["change_pct"]), reverse=True)[:20]
-    bluechips = [s for s in all_stocks if s["category"] == "Bluechip"]
-
-    output = {
-        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S WIB"),
-        "total_scanned": len(all_stocks),
-        "ihsg": ihsg_data,
-        "top_10_entry": top_10_entry,
-        "swing_setup": swing_setup,
-        "top_gainers": top_gainers,
-        "top_movers": top_movers,
-        "bluechips": bluechips,
-        "top_bearish": top_bearish,
-        "all_stocks": all_stocks
-    }
-
-    temp_filename, final_filename = "data.json.tmp", "data.json"
-    with open(temp_filename, "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=2)
-    os.replace(temp_filename, final_filename)
-    print(f"🚀 Berhasil! {len(all_stocks)} emiten tersimpan.")
 
 if __name__ == "__main__":
-    fetch_real_data()
+    main()
